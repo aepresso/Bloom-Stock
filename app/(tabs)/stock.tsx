@@ -99,6 +99,15 @@ export default function StockScreen() {
         <Pressable style={styles.actionBtn} onPress={() => start(false)}>
           <Text style={styles.actionText}>📁 Upload File</Text>
         </Pressable>
+        <Pressable
+          style={styles.actionBtn}
+          onPress={() => {
+            setManualQuantities({});
+            setPipeline({ phase: 'manual', imageUri: '' });
+          }}
+        >
+          <Text style={styles.actionText}>✏️ Manual Entry</Text>
+        </Pressable>
       </View>
 
       <Text style={styles.sectionTitle}>Recent Receipts</Text>
@@ -147,8 +156,7 @@ export default function StockScreen() {
         <View style={[styles.manualRoot, { paddingTop: insets.top + spacing.lg }]}>
           <Text style={styles.title}>Manual Entry</Text>
           <Text style={styles.manualHint}>
-            Couldn&apos;t auto-read this receipt — add the flowers you bought. Price defaults to
-            each flower&apos;s last recorded price.
+            Add the flowers you bought. Price defaults to each flower&apos;s last recorded price.
           </Text>
           <View style={styles.manualGrid}>
             <FlowerPickerGrid

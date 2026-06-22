@@ -121,20 +121,18 @@ function FlowerCard({
   };
 
   return (
-    <Pressable
-      onPress={onToggleExpand}
-      style={[styles.card, selected && styles.cardSelected]}
-    >
-      <View style={styles.cardHeader}>
+    <View style={[styles.card, selected && styles.cardSelected]}>
+      <Pressable onPress={onToggleExpand} style={styles.cardHeader}>
         <Text style={styles.cardName} numberOfLines={2}>
           {flower.name}
         </Text>
         {selected && !expanded ? <Text style={styles.cardBadge}>{qty}</Text> : null}
-      </View>
+      </Pressable>
 
       {expanded ? (
         <View style={styles.stepper}>
           <Pressable
+            hitSlop={8}
             style={styles.stepBtn}
             onPress={() => {
               const n = Math.max(0, qty - 1);
@@ -155,6 +153,7 @@ function FlowerCard({
             placeholderTextColor={palette.textSecondary}
           />
           <Pressable
+            hitSlop={8}
             style={styles.stepBtn}
             onPress={() => {
               const n = qty + 1;
@@ -166,7 +165,7 @@ function FlowerCard({
           </Pressable>
         </View>
       ) : null}
-    </Pressable>
+    </View>
   );
 }
 
@@ -219,8 +218,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   stepBtn: {
-    width: 36,
-    height: 36,
+    width: 40,
+    height: 40,
     borderRadius: radius.sm,
     backgroundColor: palette.background,
     alignItems: 'center',
