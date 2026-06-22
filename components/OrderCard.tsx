@@ -58,6 +58,7 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
       <Text style={[styles.meta, muted && styles.textMuted]}>
         {order.deliveryType === 'delivery' ? 'Delivery' : 'Pickup'} · 💰{' '}
         {PAYMENT_LABEL[order.paymentStatus]}
+        {order.totalPrice != null ? ` · $${order.totalPrice}` : ''}
       </Text>
 
       <View style={styles.progressTrack}>

@@ -61,9 +61,14 @@ export default function OrdersScreen() {
     <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
       <View style={styles.header}>
         <Text style={styles.title}>Orders</Text>
-        <Pressable style={styles.addBtn} onPress={() => router.push('/order/new')} hitSlop={8}>
-          <Text style={styles.addBtnText}>＋</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable style={styles.archiveBtn} onPress={() => router.push('/archive')} hitSlop={8}>
+            <Text style={styles.archiveBtnText}>🗄</Text>
+          </Pressable>
+          <Pressable style={styles.addBtn} onPress={() => router.push('/order/new')} hitSlop={8}>
+            <Text style={styles.addBtnText}>＋</Text>
+          </Pressable>
+        </View>
       </View>
 
       <SearchBar value={query} onChangeText={setQuery} />
@@ -102,6 +107,7 @@ function createStyles(theme: ThemeTokens) {
       marginBottom: spacing.lg,
     },
     title: { fontFamily: typography.display, fontSize: fontSize.header, color: theme.textPrimary },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     addBtn: {
       width: 44,
       height: 44,
@@ -111,6 +117,17 @@ function createStyles(theme: ThemeTokens) {
       justifyContent: 'center',
     },
     addBtnText: { color: '#fff', fontSize: 24, lineHeight: 26 },
+    archiveBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: radius.xl,
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    archiveBtnText: { fontSize: 20 },
     list: { paddingBottom: spacing.xl, gap: spacing.sm },
     empty: {
       fontFamily: typography.body,

@@ -1,11 +1,14 @@
 // Archive screen (SPEC §5.6). Completed orders in the muted card palette, sorted by
 // archivedAt descending, tapping into a read-only Order Detail (?readonly=1). Search
 // is wired in US6 (T048).
+//
+// 002-ui-redesign: lives as a top-level modal route (pushed from Orders via a header
+// icon button) rather than a permanent tab — see app/_layout.tsx for the modal
+// presentation registration.
 
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OrderCard } from '@/components/OrderCard';
 import { SearchBar } from '@/components/SearchBar';
@@ -17,13 +20,12 @@ import { useTheme } from '@/lib/theme-context';
 export default function ArchiveScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
-  const insets = useSafeAreaInsets();
   const { archivedOrders, hydrated } = useOrders();
   const [query, setQuery] = useState('');
   const visibleOrders = useMemo(() => filterOrders(archivedOrders, query), [archivedOrders, query]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
+    <View style={[styles.container, { paddingTop: spacing.lg }]}>
       <Text style={styles.title}>Archive</Text>
       <SearchBar value={query} onChangeText={setQuery} />
       <FlatList

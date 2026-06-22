@@ -8,15 +8,8 @@
 // the ranking while the user is typing.
 
 import { useMemo, useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Reanimated, { Layout } from 'react-native-reanimated';
 
 import { FLOWERS } from '@/data/flowers';
 import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
@@ -41,8 +34,6 @@ export function FlowerPickerGrid({
 }: Props) {
   const theme = useTheme();
   const styles = createStyles(theme);
-  const { width } = useWindowDimensions();
-  const numColumns = width >= 700 ? 3 : 2;
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -73,30 +64,26 @@ export function FlowerPickerGrid({
         onChangeText={setSearch}
         autoCorrect={false}
       />
-      <FlatList
-        key={numColumns} // numColumns can't change on a mounted FlatList
-        data={visible}
-        keyExtractor={(f) => f.id}
-        numColumns={numColumns}
-        columnWrapperStyle={styles.row}
-        contentContainerStyle={styles.grid}
-        keyboardShouldPersistTaps="handled"
-        renderItem={({ item }) => {
-          const qty = quantities[item.id] ?? 0;
-          const selected = qty > 0;
-          const expanded = expandedId === item.id;
-          return (
-            <FlowerCard
-              flower={item}
-              qty={qty}
-              selected={selected}
-              expanded={expanded}
-              onToggleExpand={() => setExpandedId(expanded ? null : item.id)}
-              onSetQuantity={(n) => onSetQuantity(item.id, n)}
-            />
-          );
-        }}
-      />
+      <ScrollView contentContainerStyle={styles.grid} keyboardShouldPersistTaps="handled">
+        <View style={styles.row}>
+          {visible.map((item) => {
+            const qty = quantities[item.id] ?? 0;
+            const selected = qty > 0;
+            const expanded = expandedId === item.id;
+            return (
+              <FlowerCard
+                key={item.id}
+                flower={item}
+                qty={qty}
+                selected={selected}
+                expanded={expanded}
+                onToggleExpand={() => setExpandedId(expanded ? null : item.id)}
+                onSetQuantity={(n) => onSetQuantity(item.id, n)}
+              />
+            );
+          })}
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -119,19 +106,37 @@ function FlowerCard({
   const theme = useTheme();
   const styles = createStyles(theme);
   const [draft, setDraft] = useState(String(qty || ''));
+  const [scale] = useState(() => new Animated.Value(1));
 
   const commitTyped = () => {
     const n = Math.max(0, Math.floor(Number(draft) || 0));
     onSetQuantity(n);
   };
 
+  const onPressIn = () => {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+  };
+  const onPressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 0 }).start();
+  };
+
   return (
-    <View style={[styles.card, selected && styles.cardSelected]}>
-      <Pressable onPress={onToggleExpand} style={styles.cardHeader}>
-        <Text style={styles.cardName} numberOfLines={2}>
-          {flower.name}
-        </Text>
-        {selected && !expanded ? <Text style={styles.cardBadge}>{qty}</Text> : null}
+    <Reanimated.View
+      layout={Layout.duration(200)}
+      style={[styles.card, selected && styles.cardSelected, expanded && styles.cardExpanded]}
+    >
+      <Pressable
+        onPress={onToggleExpand}
+        onPressIn={onPressIn}
+        onPressOut={onPressOut}
+        style={({ pressed }) => [styles.cardHeader, pressed && styles.cardHeaderPressed]}
+      >
+        <Animated.View style={[styles.cardHeaderInner, { transform: [{ scale }] }]}>
+          <Text style={styles.cardName} numberOfLines={2}>
+            {flower.name}
+          </Text>
+          {selected && !expanded ? <Text style={styles.cardBadge}>{qty}</Text> : null}
+        </Animated.View>
       </Pressable>
 
       {expanded ? (
@@ -170,7 +175,7 @@ function FlowerCard({
           </Pressable>
         </View>
       ) : null}
-    </View>
+    </Reanimated.View>
   );
 }
 
@@ -189,20 +194,40 @@ function createStyles(theme: ThemeTokens) {
       color: theme.textPrimary,
       marginBottom: spacing.md,
     },
-    grid: { paddingBottom: spacing.xl, gap: spacing.sm },
-    row: { gap: spacing.sm },
+    grid: { paddingBottom: spacing.xl },
+    row: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      rowGap: spacing.md,
+      columnGap: spacing.sm,
+    },
     card: {
-      flex: 1,
+      minWidth: 160,
+      flexGrow: 1,
+      flexBasis: 160,
       // Signature pressed-botanical surface tint (SPEC §8).
       backgroundColor: theme.flowerCard,
       borderWidth: StyleSheet.hairlineWidth,
       borderColor: theme.border,
       borderRadius: radius.lg,
-      padding: spacing.md,
+      padding: spacing.md + spacing.xs,
       minHeight: 72,
     },
+    cardExpanded: {
+      flexBasis: '100%',
+      minWidth: '100%',
+    },
     cardSelected: { borderColor: theme.primary, borderWidth: 1.5 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardHeader: { flexDirection: 'row' },
+    cardHeaderPressed: { opacity: 0.85 },
+    cardHeaderInner: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      flex: 1,
+      marginTop: spacing.xs,
+      marginLeft: spacing.xs,
+    },
     cardName: {
       flex: 1,
       fontFamily: typography.body,

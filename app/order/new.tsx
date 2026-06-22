@@ -21,7 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DueDateField, PhotoPicker, Segmented, TextField } from '@/components/forms';
+import { DueDateField, PhotoPicker, PriceField, Segmented, TextField } from '@/components/forms';
 import { FlowerPickerGrid } from '@/components/FlowerPickerGrid';
 import { useOrders } from '@/hooks/useOrders';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
@@ -35,6 +35,23 @@ function todayIso(): string {
   const d = new Date();
   d.setHours(12, 0, 0, 0);
   return d.toISOString();
+}
+
+/** Builds a natural-language list of what's missing, e.g. "Needs a name and a flower". */
+function describeMissingFields(
+  customerName: string,
+  dueDateValid: boolean,
+  hasFlower: boolean
+): string {
+  const missing: string[] = [];
+  if (customerName.trim().length === 0) missing.push('a name');
+  if (!dueDateValid) missing.push('a due date');
+  if (!hasFlower) missing.push('a flower');
+
+  if (missing.length === 0) return '';
+  if (missing.length === 1) return `Needs ${missing[0]}`;
+  if (missing.length === 2) return `Needs ${missing[0]} and ${missing[1]}`;
+  return `Needs ${missing[0]}, ${missing[1]}, and ${missing[2]}`;
 }
 
 export default function NewOrderScreen() {
@@ -55,9 +72,12 @@ export default function NewOrderScreen() {
   const [dueDate, setDueDate] = useState(todayIso());
   const [deliveryType, setDeliveryType] = useState<DeliveryType>('delivery');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('unpaid');
+  const [totalPrice, setTotalPrice] = useState('');
   const [notes, setNotes] = useState('');
   const [referencePhotoUri, setReferencePhotoUri] = useState<string | undefined>();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [showValidationError, setShowValidationError] = useState(false);
+  const [shake] = useState(() => new Animated.Value(0));
 
   // Draft autosave (SPEC §5.3). Gate persistence until the resume prompt resolves so
   // we never overwrite an existing draft before the user decides to keep it.
@@ -70,6 +90,7 @@ export default function NewOrderScreen() {
     if (draft.dueDate) setDueDate(draft.dueDate);
     if (draft.deliveryType) setDeliveryType(draft.deliveryType);
     if (draft.paymentStatus) setPaymentStatus(draft.paymentStatus);
+    setTotalPrice(draft.totalPrice != null ? String(draft.totalPrice) : '');
     setNotes(draft.notes ?? '');
     setReferencePhotoUri(draft.referencePhotoUri);
     setQuantities(Object.fromEntries((draft.flowers ?? []).map((f) => [f.flowerId, f.quantity])));
@@ -120,6 +141,7 @@ export default function NewOrderScreen() {
       dueDate,
       deliveryType,
       paymentStatus,
+      totalPrice: totalPrice.trim() ? Number(totalPrice) : undefined,
       notes,
       referencePhotoUri,
       flowers: Object.entries(quantities)
@@ -136,6 +158,7 @@ export default function NewOrderScreen() {
     dueDate,
     deliveryType,
     paymentStatus,
+    totalPrice,
     notes,
     referencePhotoUri,
     quantities,
@@ -154,14 +177,27 @@ export default function NewOrderScreen() {
     .filter(([, q]) => q > 0)
     .map(([flowerId, quantity]) => ({ flowerId, quantity, fulfilledQuantity: 0 }));
 
-  const isValid =
-    customerName.trim().length > 0 &&
-    !!dueDate &&
-    new Date(dueDate).getTime() >= new Date(todayIso()).setHours(0, 0, 0, 0) &&
-    flowers.length >= 1;
+  const dueDateValid =
+    !!dueDate && new Date(dueDate).getTime() >= new Date(todayIso()).setHours(0, 0, 0, 0);
+  const isValid = customerName.trim().length > 0 && dueDateValid && flowers.length >= 1;
+
+  const validationMessage = describeMissingFields(customerName, dueDateValid, flowers.length >= 1);
+
+  const runShake = () => {
+    Animated.sequence([
+      Animated.timing(shake, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: -10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 10, duration: 50, useNativeDriver: true }),
+      Animated.timing(shake, { toValue: 0, duration: 50, useNativeDriver: true }),
+    ]).start();
+  };
 
   const onSave = () => {
-    if (!isValid) return;
+    if (!isValid) {
+      setShowValidationError(true);
+      runShake();
+      return;
+    }
     createOrder({
       customerName: customerName.trim(),
       instagramHandle: instagramHandle.trim().replace(/^@/, '') || undefined,
@@ -169,6 +205,7 @@ export default function NewOrderScreen() {
       dueDate,
       deliveryType,
       paymentStatus,
+      totalPrice: totalPrice.trim() ? Number(totalPrice) : undefined,
       notes: notes.trim() || undefined,
       referencePhotoUri,
       flowers,
@@ -238,6 +275,7 @@ export default function NewOrderScreen() {
                 { value: 'paid', label: 'Paid' },
               ]}
             />
+            <PriceField value={totalPrice} onChange={setTotalPrice} />
             <TextField
               label="Special Notes"
               value={notes}
@@ -264,15 +302,17 @@ export default function NewOrderScreen() {
 
       {/* Persistent Save footer (both steps) */}
       <View style={[styles.footer, { paddingBottom: insets.bottom || spacing.md }]}>
-        <Pressable
-          style={[styles.saveBtn, !isValid && styles.saveBtnDisabled]}
-          onPress={onSave}
-          disabled={!isValid}
-        >
-          <Text style={styles.saveBtnText}>
-            {isValid ? 'Save Order' : 'Add a name, due date & a flower'}
-          </Text>
-        </Pressable>
+        {showValidationError && !isValid ? (
+          <Text style={styles.validationError}>{validationMessage}</Text>
+        ) : null}
+        <Animated.View style={{ transform: [{ translateX: shake }] }}>
+          <Pressable
+            style={[styles.saveBtn, !isValid && styles.saveBtnDisabled]}
+            onPress={onSave}
+          >
+            <Text style={styles.saveBtnText}>Save Order</Text>
+          </Pressable>
+        </Animated.View>
       </View>
     </KeyboardAvoidingView>
   );
@@ -328,5 +368,12 @@ function createStyles(theme: ThemeTokens) {
     },
     saveBtnDisabled: { backgroundColor: theme.progressTrack },
     saveBtnText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.subtitle, fontWeight: '700' },
+    validationError: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.danger,
+      textAlign: 'center',
+      marginBottom: spacing.sm,
+    },
   });
 }

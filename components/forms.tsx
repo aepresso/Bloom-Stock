@@ -43,6 +43,34 @@ export function TextField({
   );
 }
 
+/** Numeric total-price field, shown with a "$" prefix (5.3 Payment section). */
+export function PriceField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
+  return (
+    <View style={styles.field}>
+      <FieldLabel>Total Price</FieldLabel>
+      <View style={styles.priceRow}>
+        <Text style={styles.pricePrefix}>$</Text>
+        <TextInput
+          style={styles.priceInput}
+          placeholderTextColor={theme.textSecondary}
+          placeholder="0.00"
+          keyboardType="decimal-pad"
+          value={value}
+          onChangeText={onChange}
+        />
+      </View>
+    </View>
+  );
+}
+
 /** Generic single-select segmented control. */
 export function Segmented<T extends string>({
   label,
@@ -221,6 +249,28 @@ function createStyles(theme: ThemeTokens) {
       color: theme.textPrimary,
     },
     inputText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textPrimary },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+    },
+    pricePrefix: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textSecondary,
+      marginRight: spacing.xs,
+    },
+    priceInput: {
+      flex: 1,
+      paddingVertical: spacing.md,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+    },
     segment: {
       flexDirection: 'row',
       backgroundColor: theme.background,

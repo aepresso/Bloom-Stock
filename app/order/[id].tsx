@@ -18,7 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DueDateField, PhotoPicker, Segmented, TextField } from '@/components/forms';
+import { DueDateField, PhotoPicker, PriceField, Segmented, TextField } from '@/components/forms';
 import { FlowerPickerGrid } from '@/components/FlowerPickerGrid';
 import { OrderCard } from '@/components/OrderCard';
 import { flowerName } from '@/data/flowers';
@@ -34,7 +34,7 @@ export default function OrderDetailScreen() {
   const styles = createStyles(theme);
   const { id, readonly } = useLocalSearchParams<{ id: string; readonly?: string }>();
   const insets = useSafeAreaInsets();
-  const { getOrder, updateOrder, deleteOrder } = useOrders();
+  const { getOrder, updateOrder, deleteOrder, archiveOrder } = useOrders();
   const recencyOrder = useRecencyOrder();
   const order = getOrder(id);
   const isReadOnly = readonly === '1';
@@ -46,6 +46,9 @@ export default function OrderDetailScreen() {
   const [deliveryType, setDeliveryType] = useState<DeliveryType>(order?.deliveryType ?? 'delivery');
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
     order?.paymentStatus ?? 'unpaid'
+  );
+  const [totalPrice, setTotalPrice] = useState(
+    order?.totalPrice != null ? String(order.totalPrice) : ''
   );
   const [notes, setNotes] = useState(order?.notes ?? '');
   const [referencePhotoUri, setReferencePhotoUri] = useState(order?.referencePhotoUri);
@@ -107,6 +110,7 @@ export default function OrderDetailScreen() {
       dueDate,
       deliveryType,
       paymentStatus,
+      totalPrice: totalPrice.trim() ? Number(totalPrice) : undefined,
       notes: notes.trim() || undefined,
       referencePhotoUri,
       flowers,
@@ -127,6 +131,33 @@ export default function OrderDetailScreen() {
         },
       },
     ]);
+
+  const onCloseOrder = () => {
+    const pct = Math.round(
+      (order.flowers.reduce((s, f) => s + f.fulfilledQuantity, 0) /
+        Math.max(1, order.flowers.reduce((s, f) => s + f.quantity, 0))) *
+        100
+    );
+    if (pct < 100) {
+      Alert.alert(
+        'Mark Delivered',
+        `This order is only ${pct}% supplied — mark delivered anyway?`,
+        [
+          { text: 'Not yet', style: 'cancel' },
+          {
+            text: 'Mark Delivered',
+            onPress: () => {
+              archiveOrder(order.id);
+              router.back();
+            },
+          },
+        ]
+      );
+    } else {
+      archiveOrder(order.id);
+      router.back();
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -167,6 +198,7 @@ export default function OrderDetailScreen() {
             { value: 'paid', label: 'Paid' },
           ]}
         />
+        <PriceField value={totalPrice} onChange={setTotalPrice} />
         <TextField label="Special Notes" value={notes} onChangeText={setNotes} multiline />
         <PhotoPicker uri={referencePhotoUri} onChange={setReferencePhotoUri} />
 
@@ -179,9 +211,14 @@ export default function OrderDetailScreen() {
           />
         </View>
 
-        <Pressable style={styles.cancelBtn} onPress={onCancelOrder}>
-          <Text style={styles.cancelBtnText}>Cancel Order</Text>
-        </Pressable>
+        <View style={styles.actionsRow}>
+          <Pressable style={[styles.cancelBtn, styles.actionBtn]} onPress={onCancelOrder}>
+            <Text style={styles.cancelBtnText}>Cancel Order</Text>
+          </Pressable>
+          <Pressable style={[styles.closeBtn, styles.actionBtn]} onPress={onCloseOrder}>
+            <Text style={styles.closeBtnText}>Close Order</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom || spacing.md }]}>
@@ -229,8 +266,13 @@ function createStyles(theme: ThemeTokens) {
     },
     photo: { width: '100%', height: 180, borderRadius: radius.lg, marginVertical: spacing.md },
     empty: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
-    cancelBtn: {
+    actionsRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
       marginTop: spacing.xl,
+    },
+    actionBtn: { flex: 1 },
+    cancelBtn: {
       paddingVertical: spacing.md,
       alignItems: 'center',
       borderRadius: radius.md,
@@ -238,6 +280,14 @@ function createStyles(theme: ThemeTokens) {
       borderColor: theme.danger,
     },
     cancelBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.danger },
+    closeBtn: {
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.success,
+    },
+    closeBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.success },
     footer: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.md,

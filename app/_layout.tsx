@@ -12,6 +12,7 @@ import * as SystemUI from 'expo-system-ui';
 
 import { runMigrations } from '@/lib/storage';
 import { StoreProvider } from '@/lib/store';
+import { typography } from '@/lib/theme';
 import { ThemeProvider, useTheme, useThemeMode } from '@/lib/theme-context';
 
 function LoadingScreen() {
@@ -46,6 +47,18 @@ function ThemedApp({ migrated }: { migrated: boolean }) {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="order" />
+        <Stack.Screen
+          name="archive"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Archive',
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.primary,
+            headerTitleStyle: { fontFamily: typography.display, color: theme.textPrimary },
+            headerShadowVisible: false,
+          }}
+        />
       </Stack>
     </StoreProvider>
   );

@@ -41,6 +41,7 @@ export type Order = {
   dueDate: string; // ISO 8601 date; UI enforces >= today at create/edit
   deliveryType: DeliveryType;
   paymentStatus: PaymentStatus;
+  totalPrice?: number; // total dollar amount the customer owes for the whole order
   notes?: string;
   referencePhotoUri?: string; // local file in document directory
   flowers: OrderFlower[]; // required, min length 1

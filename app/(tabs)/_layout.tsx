@@ -24,13 +24,14 @@ import { spacing, typography, radius, type ThemeMode, type ThemeTokens } from '@
 
 type TabDef = { name: string; href: string; label: string; icon: string };
 
-// Order matches SPEC §3: Shopping List · Orders · Stock · Inventory · Archive.
+// Order matches SPEC §3: Shopping List · Orders · Stock · Inventory.
+// Archive (002-ui-redesign) is no longer a permanent tab — it's reachable as a
+// modal sheet from the Orders screen header instead.
 const TABS: TabDef[] = [
   { name: 'shopping-list', href: '/shopping-list', label: 'Shopping', icon: '🛒' },
   { name: 'orders', href: '/orders', label: 'Orders', icon: '📋' },
   { name: 'stock', href: '/stock', label: 'Stock', icon: '🧾' },
   { name: 'inventory', href: '/inventory', label: 'Inventory', icon: '📦' },
-  { name: 'archive', href: '/archive', label: 'Archive', icon: '🗂' },
 ];
 
 const NEXT_MODE: Record<ThemeMode, ThemeMode> = {
