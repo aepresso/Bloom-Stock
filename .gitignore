@@ -44,3 +44,5 @@ coverage/
 
 # misc build artifacts
 a.out
+
+.vercel

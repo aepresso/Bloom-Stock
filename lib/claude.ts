@@ -1,6 +1,7 @@
-// Claude receipt-interpretation client. Direct on-device fetch to the Anthropic
-// Messages API with the bundled key (research §5). The receipt photo is sent
-// straight to Claude as a multimodal image block — no on-device OCR step — since
+// Claude receipt-interpretation client. Direct on-device fetch to a Claude model
+// via OpenRouter (research §5) — OpenRouter is an OpenAI-Chat-Completions-shaped
+// proxy in front of Anthropic and other model providers. The receipt photo is sent
+// straight to Claude as a multimodal image_url part — no on-device OCR step — since
 // Claude reads the receipt itself. Every failure mode — network, non-2xx,
 // malformed completion — is classified and surfaced so the Stocking screen can
 // route all three to manual entry (SPEC §5.4).
@@ -14,9 +15,8 @@ import { FLOWERS, resolveFlowerIdByName } from '@/data/flowers';
 import { imageToBase64 } from '@/lib/images';
 import type { ParsedReceiptItem, PriceUnit } from '@/types';
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-6';
-const ANTHROPIC_VERSION = '2023-06-01';
+const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'anthropic/claude-sonnet-4.5';
 
 export const RECEIPT_PROMPT_TEMPLATE = `You are reading a photo of a grocery/flower shop receipt.
 Identify all flower items and their quantities (stem count or bunch count).
@@ -34,8 +34,8 @@ function buildPrompt(): string {
 }
 
 function apiKey(): string {
-  // Set in app.config.ts from EXPO_PUBLIC_ANTHROPIC_API_KEY.
-  return (Constants.expoConfig?.extra?.anthropicApiKey as string | undefined) ?? '';
+  // Set in app.config.ts from EXPO_PUBLIC_OPENROUTER_API_KEY.
+  return (Constants.expoConfig?.extra?.openRouterApiKey as string | undefined) ?? '';
 }
 
 export type ClaudeErrorKind = 'network' | 'api' | 'malformed' | 'no-key';
@@ -44,19 +44,15 @@ export type ParseReceiptResult =
   | { ok: true; items: ParsedReceiptItem[] }
   | { ok: false; error: ClaudeErrorKind };
 
-/** Pull the concatenated text out of an Anthropic Messages response body. */
+/** Pull the completion text out of an OpenAI-Chat-Completions-shaped response body. */
 function extractCompletionText(body: unknown): string | null {
   if (typeof body !== 'object' || body === null) return null;
-  const content = (body as { content?: unknown }).content;
-  if (!Array.isArray(content)) return null;
-  const text = content
-    .filter(
-      (b): b is { type: string; text: string } =>
-        typeof b === 'object' && b !== null && (b as { type?: string }).type === 'text'
-    )
-    .map((b) => b.text)
-    .join('');
-  return text || null;
+  const choices = (body as { choices?: unknown }).choices;
+  if (!Array.isArray(choices) || choices.length === 0) return null;
+  const message = (choices[0] as { message?: unknown }).message;
+  if (typeof message !== 'object' || message === null) return null;
+  const text = (message as { content?: unknown }).content;
+  return typeof text === 'string' && text ? text : null;
 }
 
 function isPriceUnit(v: unknown): v is PriceUnit {
@@ -124,8 +120,7 @@ export async function parseReceiptFromImage(imageUri: string): Promise<ParseRece
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': ANTHROPIC_VERSION,
+        authorization: `Bearer ${key}`,
       },
       body: JSON.stringify({
         model: MODEL,
@@ -134,7 +129,7 @@ export async function parseReceiptFromImage(imageUri: string): Promise<ParseRece
           {
             role: 'user',
             content: [
-              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'image_url', image_url: { url: `data:${mediaType};base64,${base64}` } },
               { type: 'text', text: buildPrompt() },
             ],
           },

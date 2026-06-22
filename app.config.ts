@@ -3,7 +3,7 @@ import type { ExpoConfig } from 'expo/config';
 // BloomStock — single-user florist order management app (v1). Runs as a PWA
 // (web, installable to the Home Screen on iPad/iPhone via Safari) plus native
 // iOS/Android via plain Expo Go — no custom native modules or dev client.
-// Uses app.config.ts (not app.json) so we can wire in the EXPO_PUBLIC Anthropic key.
+// Uses app.config.ts (not app.json) so we can wire in the EXPO_PUBLIC OpenRouter key.
 const config: ExpoConfig = {
   name: 'BloomStock',
   slug: 'bloom-stock',
@@ -46,7 +46,7 @@ const config: ExpoConfig = {
     // Bundled at build time. Note: EXPO_PUBLIC_* is inlined into the JS bundle
     // and extractable from the IPA — acceptable only for this single-user,
     // personal-distribution app (SPEC §5.4 "API key"). Never ship this widely.
-    anthropicApiKey: process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY ?? '',
+    openRouterApiKey: process.env.EXPO_PUBLIC_OPENROUTER_API_KEY ?? '',
   },
 };
 
