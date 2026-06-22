@@ -8,10 +8,48 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as SystemUI from 'expo-system-ui';
 
-import { palette } from '@/lib/theme';
 import { runMigrations } from '@/lib/storage';
 import { StoreProvider } from '@/lib/store';
+import { ThemeProvider, useTheme, useThemeMode } from '@/lib/theme-context';
+
+function LoadingScreen() {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.background,
+      }}
+    >
+      <ActivityIndicator color={theme.primary} />
+    </View>
+  );
+}
+
+function ThemedApp({ migrated }: { migrated: boolean }) {
+  const theme = useTheme();
+  const { resolvedMode } = useThemeMode();
+
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(theme.background);
+  }, [theme.background]);
+
+  if (!migrated) return <LoadingScreen />;
+
+  return (
+    <StoreProvider>
+      <StatusBar style={resolvedMode === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.background } }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="order" />
+      </Stack>
+    </StoreProvider>
+  );
+}
 
 export default function RootLayout() {
   const [migrated, setMigrated] = useState(false);
@@ -20,31 +58,12 @@ export default function RootLayout() {
     runMigrations().finally(() => setMigrated(true));
   }, []);
 
-  if (!migrated) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: palette.background,
-        }}
-      >
-        <ActivityIndicator color={palette.primary} />
-      </View>
-    );
-  }
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <StoreProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen name="order" />
-          </Stack>
-        </StoreProvider>
+        <ThemeProvider>
+          <ThemedApp migrated={migrated} />
+        </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

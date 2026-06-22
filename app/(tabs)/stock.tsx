@@ -26,7 +26,8 @@ import { useReceipts } from '@/hooks/useReceipts';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
 import { parseReceiptFromImage } from '@/lib/claude';
 import { persistImage } from '@/lib/images';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { ParsedReceiptItem, StockingReceipt } from '@/types';
 
 type Pipeline =
@@ -36,6 +37,8 @@ type Pipeline =
   | { phase: 'manual'; imageUri: string };
 
 export default function StockScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const { confirmReceipt } = useInventory();
   const { recentReceipts } = useReceipts();
@@ -132,7 +135,7 @@ export default function StockScreen() {
       {/* Processing overlay */}
       <Modal visible={pipeline.phase === 'processing'} transparent animationType="fade">
         <View style={styles.processingBackdrop}>
-          <ActivityIndicator color={palette.primary} size="large" />
+          <ActivityIndicator color={theme.primary} size="large" />
           <Text style={styles.processingText}>Reading receipt…</Text>
         </View>
       </Modal>
@@ -207,72 +210,74 @@ export default function StockScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
-  title: { fontFamily: typography.display, fontSize: fontSize.header, color: palette.textPrimary },
-  actions: { gap: spacing.md, marginTop: spacing.lg },
-  actionBtn: {
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.lg,
-    alignItems: 'center',
-  },
-  actionText: { fontFamily: typography.body, fontSize: fontSize.subtitle, color: palette.primary },
-  sectionTitle: {
-    fontFamily: typography.display,
-    fontSize: fontSize.title,
-    color: palette.textPrimary,
-    marginTop: spacing.xl,
-    marginBottom: spacing.sm,
-  },
-  list: { paddingBottom: spacing.xl },
-  receiptRow: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: palette.border,
-  },
-  receiptText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textPrimary },
-  empty: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  processingBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.md,
-  },
-  processingText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body },
-  manualRoot: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
-  manualHint: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: spacing.sm,
-  },
-  manualGrid: { flex: 1, marginTop: spacing.md },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.border,
-  },
-  sheetCancel: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  sheetCancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  confirmBtn: {
-    flex: 1,
-    backgroundColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  confirmText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
-  viewerScroll: { padding: spacing.lg },
-  viewerLine: {
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.xs,
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background, paddingHorizontal: spacing.lg },
+    title: { fontFamily: typography.display, fontSize: fontSize.header, color: theme.textPrimary },
+    actions: { gap: spacing.md, marginTop: spacing.lg },
+    actionBtn: {
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.primary,
+      borderRadius: radius.lg,
+      paddingVertical: spacing.lg,
+      alignItems: 'center',
+    },
+    actionText: { fontFamily: typography.body, fontSize: fontSize.subtitle, color: theme.primary },
+    sectionTitle: {
+      fontFamily: typography.display,
+      fontSize: fontSize.title,
+      color: theme.textPrimary,
+      marginTop: spacing.xl,
+      marginBottom: spacing.sm,
+    },
+    list: { paddingBottom: spacing.xl, gap: spacing.sm },
+    receiptRow: {
+      paddingVertical: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.border,
+    },
+    receiptText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textPrimary },
+    empty: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    processingBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.md,
+    },
+    processingText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body },
+    manualRoot: { flex: 1, backgroundColor: theme.background, paddingHorizontal: spacing.lg },
+    manualHint: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginTop: spacing.sm,
+    },
+    manualGrid: { flex: 1, marginTop: spacing.md },
+    footer: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+    },
+    sheetCancel: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
+    sheetCancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    confirmBtn: {
+      flex: 1,
+      backgroundColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+    confirmText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
+    viewerScroll: { padding: spacing.lg },
+    viewerLine: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      marginBottom: spacing.xs,
+    },
+  });
+}

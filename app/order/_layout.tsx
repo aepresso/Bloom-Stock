@@ -4,17 +4,19 @@
 
 import { Stack } from 'expo-router';
 
-import { palette, typography } from '@/lib/theme';
+import { typography } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 export default function OrderLayout() {
+  const theme = useTheme();
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: palette.background },
-        headerTintColor: palette.primary,
-        headerTitleStyle: { fontFamily: typography.display, color: palette.textPrimary },
+        headerStyle: { backgroundColor: theme.background },
+        headerTintColor: theme.primary,
+        headerTitleStyle: { fontFamily: typography.display, color: theme.textPrimary },
         headerShadowVisible: false,
-        contentStyle: { backgroundColor: palette.background },
+        contentStyle: { backgroundColor: theme.background },
       }}
     >
       <Stack.Screen name="new" options={{ title: 'New Order', presentation: 'modal' }} />

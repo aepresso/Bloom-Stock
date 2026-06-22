@@ -4,7 +4,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { flowerName } from '@/data/flowers';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { cardElevation, fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 function formatDue(iso: string): string {
   const d = new Date(iso);
@@ -25,6 +26,7 @@ export function ShoppingListRow({
   dueDate: string;
   onPress: () => void;
 }) {
+  const styles = createStyles(useTheme());
   return (
     <Pressable style={styles.row} onPress={onPress}>
       <View style={styles.headerLine}>
@@ -38,22 +40,23 @@ export function ShoppingListRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  headerLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontFamily: typography.display, fontSize: fontSize.subtitle, color: palette.textPrimary },
-  need: { fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700', color: palette.accent },
-  context: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: 2,
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    row: {
+      backgroundColor: theme.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      ...cardElevation(theme),
+    },
+    headerLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    name: { fontFamily: typography.display, fontSize: fontSize.subtitle, color: theme.textPrimary },
+    need: { fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700', color: theme.accent },
+    context: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
+  });
+}

@@ -11,7 +11,7 @@ const config: ExpoConfig = {
   orientation: 'default', // iPhone + iPad, responsive (SPEC §3)
   icon: './assets/images/icon.png',
   scheme: 'bloomstock',
-  userInterfaceStyle: 'light',
+  userInterfaceStyle: 'automatic',
   ios: {
     supportsTablet: true, // iPad sidebar layout (SPEC §3)
     bundleIdentifier: 'com.aepresso.bloomstock',

@@ -8,6 +8,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import type { ThemeMode } from '@/lib/theme';
 import type {
   DraftOrder,
   InventoryAdjustment,
@@ -23,6 +24,7 @@ export const STORAGE_KEYS = {
   adjustments: 'bloomstock:adjustments',
   draftOrder: 'bloomstock:draft_order',
   schemaVersion: 'bloomstock:schema_version',
+  themePreference: 'bloomstock:theme_preference',
 } as const;
 
 /** Bump whenever a persisted shape changes; add a matching entry to MIGRATIONS. */
@@ -77,6 +79,17 @@ export const draftOrderStore = {
   get: () => getItem<DraftOrder | undefined>(STORAGE_KEYS.draftOrder, undefined),
   set: (draft: DraftOrder) => setItem(STORAGE_KEYS.draftOrder, draft),
   clear: () => removeItem(STORAGE_KEYS.draftOrder),
+};
+
+const THEME_MODES: ThemeMode[] = ['light', 'dark', 'system'];
+
+export const themePreferenceStore = {
+  get: async (): Promise<ThemeMode> => {
+    const stored = await getItem<ThemeMode>(STORAGE_KEYS.themePreference, 'system');
+    // Defensive: corrupt/legacy/future-incompatible values fall back to 'system'.
+    return THEME_MODES.includes(stored) ? stored : 'system';
+  },
+  set: (mode: ThemeMode) => setItem(STORAGE_KEYS.themePreference, mode),
 };
 
 // Migration runner. -----------------------------------------------------------

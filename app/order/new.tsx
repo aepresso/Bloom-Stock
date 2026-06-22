@@ -27,7 +27,8 @@ import { useOrders } from '@/hooks/useOrders';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
 import { deleteImage } from '@/lib/images';
 import { draftOrderStore } from '@/lib/storage';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { DeliveryType, DraftOrder, OrderFlower, PaymentStatus } from '@/types';
 
 function todayIso(): string {
@@ -37,6 +38,8 @@ function todayIso(): string {
 }
 
 export default function NewOrderScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { createOrder } = useOrders();
@@ -286,42 +289,44 @@ function setQuantity(set: React.Dispatch<React.SetStateAction<Record<string, num
     });
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.background },
-  stepsHeader: {
-    flexDirection: 'row',
-    gap: spacing.xl,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  stepTab: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  stepTabActive: { color: palette.primary, fontWeight: '700' },
-  panels: { flex: 1, flexDirection: 'row' },
-  panel: { flex: 1 },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  nextBtn: {
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  nextBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.primary },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: palette.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.border,
-  },
-  saveBtn: {
-    backgroundColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { backgroundColor: palette.progressTrack },
-  saveBtnText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.subtitle, fontWeight: '700' },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: theme.background },
+    stepsHeader: {
+      flexDirection: 'row',
+      gap: spacing.xl,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    stepTab: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    stepTabActive: { color: theme.primary, fontWeight: '700' },
+    panels: { flex: 1, flexDirection: 'row' },
+    panel: { flex: 1 },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    nextBtn: {
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      marginTop: spacing.sm,
+    },
+    nextBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.primary },
+    footer: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      backgroundColor: theme.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+    },
+    saveBtn: {
+      backgroundColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+    saveBtnDisabled: { backgroundColor: theme.progressTrack },
+    saveBtnText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.subtitle, fontWeight: '700' },
+  });
+}

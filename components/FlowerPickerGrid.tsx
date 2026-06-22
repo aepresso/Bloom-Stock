@@ -19,7 +19,8 @@ import {
 } from 'react-native';
 
 import { FLOWERS } from '@/data/flowers';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { Flower } from '@/types';
 
 type Props = {
@@ -38,6 +39,8 @@ export function FlowerPickerGrid({
   recencyOrder,
   flowers = FLOWERS,
 }: Props) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { width } = useWindowDimensions();
   const numColumns = width >= 700 ? 3 : 2;
   const [search, setSearch] = useState('');
@@ -65,7 +68,7 @@ export function FlowerPickerGrid({
       <TextInput
         style={styles.search}
         placeholder="Search flowers…"
-        placeholderTextColor={palette.textSecondary}
+        placeholderTextColor={theme.textSecondary}
         value={search}
         onChangeText={setSearch}
         autoCorrect={false}
@@ -113,6 +116,8 @@ function FlowerCard({
   onToggleExpand: () => void;
   onSetQuantity: (n: number) => void;
 }) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [draft, setDraft] = useState(String(qty || ''));
 
   const commitTyped = () => {
@@ -150,7 +155,7 @@ function FlowerCard({
             onEndEditing={commitTyped}
             onBlur={commitTyped}
             placeholder="0"
-            placeholderTextColor={palette.textSecondary}
+            placeholderTextColor={theme.textSecondary}
           />
           <Pressable
             hitSlop={8}
@@ -169,69 +174,71 @@ function FlowerCard({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  search: {
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.md,
-  },
-  grid: { paddingBottom: spacing.xl, gap: spacing.sm },
-  row: { gap: spacing.sm },
-  card: {
-    flex: 1,
-    // Signature pressed-botanical surface tint (SPEC §8).
-    backgroundColor: palette.flowerCard,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    minHeight: 72,
-  },
-  cardSelected: { borderColor: palette.primary, borderWidth: 1.5 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  cardName: {
-    flex: 1,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-  },
-  cardBadge: {
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    fontWeight: '700',
-    color: palette.primary,
-    marginLeft: spacing.sm,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  stepBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.sm,
-    backgroundColor: palette.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepBtnText: { fontSize: 22, color: palette.primary, lineHeight: 24 },
-  qtyInput: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: typography.body,
-    fontSize: fontSize.subtitle,
-    color: palette.textPrimary,
-    paddingVertical: spacing.xs,
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    container: { flex: 1 },
+    search: {
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      marginBottom: spacing.md,
+    },
+    grid: { paddingBottom: spacing.xl, gap: spacing.sm },
+    row: { gap: spacing.sm },
+    card: {
+      flex: 1,
+      // Signature pressed-botanical surface tint (SPEC §8).
+      backgroundColor: theme.flowerCard,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      minHeight: 72,
+    },
+    cardSelected: { borderColor: theme.primary, borderWidth: 1.5 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+    cardName: {
+      flex: 1,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+    },
+    cardBadge: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      fontWeight: '700',
+      color: theme.primary,
+      marginLeft: spacing.sm,
+    },
+    stepper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: spacing.md,
+      gap: spacing.sm,
+    },
+    stepBtn: {
+      width: 40,
+      height: 40,
+      borderRadius: radius.sm,
+      backgroundColor: theme.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    stepBtnText: { fontSize: 22, color: theme.primary, lineHeight: 24 },
+    qtyInput: {
+      flex: 1,
+      textAlign: 'center',
+      fontFamily: typography.body,
+      fontSize: fontSize.subtitle,
+      color: theme.textPrimary,
+      paddingVertical: spacing.xs,
+    },
+  });
+}

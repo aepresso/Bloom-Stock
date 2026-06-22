@@ -11,9 +11,12 @@ import { OrderCard } from '@/components/OrderCard';
 import { SearchBar } from '@/components/SearchBar';
 import { useOrders } from '@/hooks/useOrders';
 import { filterOrders } from '@/lib/search';
-import { fontSize, palette, spacing, typography } from '@/lib/theme';
+import { fontSize, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 export default function ArchiveScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const { archivedOrders, hydrated } = useOrders();
   const [query, setQuery] = useState('');
@@ -46,20 +49,22 @@ export default function ArchiveScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
-  title: {
-    fontFamily: typography.display,
-    fontSize: fontSize.header,
-    color: palette.textPrimary,
-    marginBottom: spacing.md,
-  },
-  list: { paddingBottom: spacing.xl },
-  empty: {
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textSecondary,
-    marginTop: spacing.xl,
-    textAlign: 'center',
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background, paddingHorizontal: spacing.lg },
+    title: {
+      fontFamily: typography.display,
+      fontSize: fontSize.header,
+      color: theme.textPrimary,
+      marginBottom: spacing.lg,
+    },
+    list: { paddingBottom: spacing.xl, gap: spacing.sm },
+    empty: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textSecondary,
+      marginTop: spacing.xl,
+      textAlign: 'center',
+    },
+  });
+}

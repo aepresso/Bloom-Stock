@@ -25,10 +25,13 @@ import { flowerName } from '@/data/flowers';
 import { useOrders } from '@/hooks/useOrders';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
 import { deleteImage } from '@/lib/images';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { DeliveryType, OrderFlower, PaymentStatus } from '@/types';
 
 export default function OrderDetailScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const { id, readonly } = useLocalSearchParams<{ id: string; readonly?: string }>();
   const insets = useSafeAreaInsets();
   const { getOrder, updateOrder, deleteOrder } = useOrders();
@@ -204,54 +207,56 @@ function setQuantity(set: React.Dispatch<React.SetStateAction<Record<string, num
     });
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
-  sectionTitle: {
-    fontFamily: typography.display,
-    fontSize: fontSize.title,
-    color: palette.textPrimary,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  // The inline grid is a FlatList; give it a bounded height inside the ScrollView.
-  pickerWrap: { height: 360 },
-  flowerLine: {
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  photo: { width: '100%', height: 180, borderRadius: radius.md, marginVertical: spacing.md },
-  empty: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  cancelBtn: {
-    marginTop: spacing.xl,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.danger,
-  },
-  cancelBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.danger },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    backgroundColor: palette.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.border,
-  },
-  saveBtn: {
-    backgroundColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: { backgroundColor: palette.progressTrack },
-  saveBtnText: {
-    color: '#fff',
-    fontFamily: typography.body,
-    fontSize: fontSize.subtitle,
-    fontWeight: '700',
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: theme.background },
+    center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    scroll: { padding: spacing.lg, paddingBottom: spacing.xl },
+    sectionTitle: {
+      fontFamily: typography.display,
+      fontSize: fontSize.title,
+      color: theme.textPrimary,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    // The inline grid is a FlatList; give it a bounded height inside the ScrollView.
+    pickerWrap: { height: 360 },
+    flowerLine: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      marginBottom: spacing.xs,
+    },
+    photo: { width: '100%', height: 180, borderRadius: radius.lg, marginVertical: spacing.md },
+    empty: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    cancelBtn: {
+      marginTop: spacing.xl,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.danger,
+    },
+    cancelBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.danger },
+    footer: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      backgroundColor: theme.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+    },
+    saveBtn: {
+      backgroundColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+    saveBtnDisabled: { backgroundColor: theme.progressTrack },
+    saveBtnText: {
+      color: '#fff',
+      fontFamily: typography.body,
+      fontSize: fontSize.subtitle,
+      fontWeight: '700',
+    },
+  });
+}

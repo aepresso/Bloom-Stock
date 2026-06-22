@@ -17,9 +17,11 @@ import {
 } from 'react-native';
 
 import { persistImage } from '@/lib/images';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 export function FieldLabel({ children }: { children: string }) {
+  const styles = createStyles(useTheme());
   return <Text style={styles.label}>{children}</Text>;
 }
 
@@ -27,12 +29,14 @@ export function TextField({
   label,
   ...props
 }: { label: string } & TextInputProps) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <View style={styles.field}>
       <FieldLabel>{label}</FieldLabel>
       <TextInput
         style={styles.input}
-        placeholderTextColor={palette.textSecondary}
+        placeholderTextColor={theme.textSecondary}
         {...props}
       />
     </View>
@@ -51,6 +55,7 @@ export function Segmented<T extends string>({
   value: T;
   onChange: (v: T) => void;
 }) {
+  const styles = createStyles(useTheme());
   return (
     <View style={styles.field}>
       <FieldLabel>{label}</FieldLabel>
@@ -82,6 +87,8 @@ export function DueDateField({
   value: string; // ISO date
   onChange: (iso: string) => void;
 }) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [show, setShow] = useState(Platform.OS === 'ios');
   const date = value ? new Date(value) : new Date();
   const today = new Date();
@@ -103,7 +110,7 @@ export function DueDateField({
             const picked = new Date(`${e.target.value}T12:00:00`);
             onChange(picked.toISOString());
           },
-          style: webDateInputStyle,
+          style: webDateInputStyle(theme),
         })}
       </View>
     );
@@ -133,17 +140,19 @@ export function DueDateField({
   );
 }
 
-const webDateInputStyle: Record<string, string | number> = {
-  backgroundColor: palette.surface,
-  border: `1px solid ${palette.border}`,
-  borderRadius: radius.md,
-  padding: spacing.md,
-  fontFamily: typography.body,
-  fontSize: fontSize.body,
-  color: palette.textPrimary,
-  width: '100%',
-  boxSizing: 'border-box',
-};
+function webDateInputStyle(theme: ThemeTokens): Record<string, string | number> {
+  return {
+    backgroundColor: theme.surface,
+    border: `1px solid ${theme.border}`,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontFamily: typography.body,
+    fontSize: fontSize.body,
+    color: theme.textPrimary,
+    width: '100%',
+    boxSizing: 'border-box',
+  };
+}
 
 /** Camera/library reference-photo picker; persists the chosen image locally (5.3). */
 export function PhotoPicker({
@@ -153,6 +162,8 @@ export function PhotoPicker({
   uri?: string;
   onChange: (uri: string | undefined) => void;
 }) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const pick = async (fromCamera: boolean) => {
     const perm = fromCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
@@ -179,7 +190,7 @@ export function PhotoPicker({
         </Pressable>
         {uri ? (
           <Pressable style={styles.photoBtn} onPress={() => onChange(undefined)}>
-            <Text style={[styles.photoBtnText, { color: palette.danger }]}>Remove</Text>
+            <Text style={[styles.photoBtnText, { color: theme.danger }]}>Remove</Text>
           </Pressable>
         ) : null}
       </View>
@@ -187,49 +198,51 @@ export function PhotoPicker({
   );
 }
 
-const styles = StyleSheet.create({
-  field: { marginBottom: spacing.lg },
-  label: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginBottom: spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  input: {
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-  },
-  inputText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textPrimary },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: palette.background,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    overflow: 'hidden',
-  },
-  segmentItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
-  segmentItemActive: { backgroundColor: palette.primary },
-  segmentText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  segmentTextActive: { color: '#fff', fontWeight: '600' },
-  photo: { width: '100%', height: 160, borderRadius: radius.md, marginBottom: spacing.sm },
-  photoRow: { flexDirection: 'row', gap: spacing.sm },
-  photoBtn: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.sm,
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-  },
-  photoBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.primary },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    field: { marginBottom: spacing.lg },
+    label: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginBottom: spacing.xs,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    input: {
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+    },
+    inputText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textPrimary },
+    segment: {
+      flexDirection: 'row',
+      backgroundColor: theme.background,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      overflow: 'hidden',
+    },
+    segmentItem: { flex: 1, paddingVertical: spacing.md, alignItems: 'center' },
+    segmentItemActive: { backgroundColor: theme.primary },
+    segmentText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    segmentTextActive: { color: '#fff', fontWeight: '600' },
+    photo: { width: '100%', height: 160, borderRadius: radius.lg, marginBottom: spacing.sm },
+    photoRow: { flexDirection: 'row', gap: spacing.sm },
+    photoBtn: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: radius.sm,
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+    },
+    photoBtnText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.primary },
+  });
+}

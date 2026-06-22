@@ -8,7 +8,8 @@ import { Swipeable } from 'react-native-gesture-handler';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { fulfillmentRatio } from '@/lib/allocation';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { cardElevation, fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { Order } from '@/types';
 
 const PAYMENT_LABEL: Record<Order['paymentStatus'], string> = {
@@ -32,6 +33,8 @@ type Props = {
 };
 
 export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: Props) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const ratio = fulfillmentRatio(order);
   const pct = Math.round(ratio * 100);
   const fullySupplied = ratio >= 1 && order.flowers.length > 0;
@@ -62,8 +65,8 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
           style={[
             styles.progressFill,
             { width: `${pct}%` },
-            fullySupplied && { backgroundColor: palette.success },
-            muted && { backgroundColor: palette.textSecondary },
+            fullySupplied && { backgroundColor: theme.success },
+            muted && { backgroundColor: theme.textSecondary },
           ]}
         />
       </View>
@@ -102,65 +105,66 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  cardMuted: { backgroundColor: '#F4F3F0', borderColor: palette.border },
-  cardFull: { borderColor: palette.success, borderWidth: 1.5 },
-  suppliedBadge: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    fontWeight: '700',
-    color: palette.success,
-    marginBottom: spacing.xs,
-  },
-  name: {
-    fontFamily: typography.display,
-    fontSize: fontSize.subtitle,
-    color: palette.textPrimary,
-    marginBottom: 2,
-  },
-  meta: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginBottom: 2,
-  },
-  textMuted: { color: palette.textSecondary },
-  progressTrack: {
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: palette.progressTrack,
-    overflow: 'hidden',
-    marginTop: spacing.sm,
-  },
-  progressFill: { height: '100%', borderRadius: 4, backgroundColor: palette.primary },
-  pct: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: 2,
-    textAlign: 'right',
-  },
-  action: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 96,
-    marginBottom: spacing.md,
-    borderRadius: radius.lg,
-  },
-  deliverAction: { backgroundColor: palette.success },
-  cancelAction: { backgroundColor: palette.danger },
-  actionText: {
-    color: '#fff',
-    fontFamily: typography.body,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: theme.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      ...cardElevation(theme),
+    },
+    cardMuted: { backgroundColor: theme.progressTrack, borderColor: theme.border },
+    cardFull: { borderColor: theme.success, borderWidth: 1.5 },
+    suppliedBadge: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      fontWeight: '700',
+      color: theme.success,
+      marginBottom: spacing.xs,
+    },
+    name: {
+      fontFamily: typography.display,
+      fontSize: fontSize.subtitle,
+      color: theme.textPrimary,
+      marginBottom: 2,
+    },
+    meta: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginBottom: 2,
+    },
+    textMuted: { color: theme.textSecondary },
+    progressTrack: {
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: theme.progressTrack,
+      overflow: 'hidden',
+      marginTop: spacing.sm,
+    },
+    progressFill: { height: '100%', borderRadius: 4, backgroundColor: theme.primary },
+    pct: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginTop: 2,
+      textAlign: 'right',
+    },
+    action: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: 96,
+      marginBottom: spacing.md,
+      borderRadius: radius.lg,
+    },
+    deliverAction: { backgroundColor: theme.success },
+    cancelAction: { backgroundColor: theme.danger },
+    actionText: {
+      color: '#fff',
+      fontFamily: typography.body,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+  });
+}

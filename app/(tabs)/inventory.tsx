@@ -17,9 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InventoryRow } from '@/components/InventoryRow';
 import { flowerName } from '@/data/flowers';
 import { useInventory } from '@/hooks/useInventory';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 export default function InventoryScreen() {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const { rows, hydrated, adjustInventory } = useInventory();
 
@@ -73,7 +76,7 @@ export default function InventoryScreen() {
               style={styles.input}
               keyboardType="numbers-and-punctuation"
               placeholder="e.g. -6"
-              placeholderTextColor={palette.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={delta}
               onChangeText={setDelta}
             />
@@ -81,7 +84,7 @@ export default function InventoryScreen() {
             <TextInput
               style={styles.input}
               placeholder="e.g. damaged stems"
-              placeholderTextColor={palette.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={reason}
               onChangeText={setReason}
             />
@@ -104,64 +107,66 @@ export default function InventoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
-  title: {
-    fontFamily: typography.display,
-    fontSize: fontSize.header,
-    color: palette.textPrimary,
-    marginBottom: spacing.md,
-  },
-  list: { paddingBottom: spacing.xl },
-  empty: {
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textSecondary,
-    marginTop: spacing.xl,
-    textAlign: 'center',
-  },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
-  sheet: {
-    backgroundColor: palette.surface,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.lg,
-  },
-  sheetTitle: {
-    fontFamily: typography.display,
-    fontSize: fontSize.title,
-    color: palette.textPrimary,
-    marginBottom: spacing.md,
-  },
-  fieldLabel: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    textTransform: 'uppercase',
-    marginBottom: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  input: {
-    backgroundColor: palette.background,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-  },
-  sheetButtons: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
-  sheetCancel: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  sheetCancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  sheetSave: {
-    flex: 1,
-    backgroundColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  sheetSaveDisabled: { backgroundColor: palette.progressTrack },
-  sheetSaveText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background, paddingHorizontal: spacing.lg },
+    title: {
+      fontFamily: typography.display,
+      fontSize: fontSize.header,
+      color: theme.textPrimary,
+      marginBottom: spacing.lg,
+    },
+    list: { paddingBottom: spacing.xl, gap: spacing.sm },
+    empty: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textSecondary,
+      marginTop: spacing.xl,
+      textAlign: 'center',
+    },
+    backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
+    sheet: {
+      backgroundColor: theme.surface,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      padding: spacing.lg,
+    },
+    sheetTitle: {
+      fontFamily: typography.display,
+      fontSize: fontSize.title,
+      color: theme.textPrimary,
+      marginBottom: spacing.md,
+    },
+    fieldLabel: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      textTransform: 'uppercase',
+      marginBottom: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    input: {
+      backgroundColor: theme.background,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+    },
+    sheetButtons: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
+    sheetCancel: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
+    sheetCancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    sheetSave: {
+      flex: 1,
+      backgroundColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+    sheetSaveDisabled: { backgroundColor: theme.progressTrack },
+    sheetSaveText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
+  });
+}

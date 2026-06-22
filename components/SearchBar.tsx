@@ -2,7 +2,8 @@
 
 import { StyleSheet, TextInput } from 'react-native';
 
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 export function SearchBar({
   value,
@@ -13,13 +14,15 @@ export function SearchBar({
   onChangeText: (text: string) => void;
   placeholder?: string;
 }) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   return (
     <TextInput
       style={styles.input}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
-      placeholderTextColor={palette.textSecondary}
+      placeholderTextColor={theme.textSecondary}
       autoCapitalize="none"
       autoCorrect={false}
       clearButtonMode="while-editing"
@@ -27,17 +30,19 @@ export function SearchBar({
   );
 }
 
-const styles = StyleSheet.create({
-  input: {
-    backgroundColor: palette.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.md,
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    input: {
+      backgroundColor: theme.surface,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.md,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      marginBottom: spacing.md,
+    },
+  });
+}

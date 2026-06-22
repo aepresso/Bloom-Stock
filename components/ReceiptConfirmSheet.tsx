@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 
 import { FLOWERS, flowerName } from '@/data/flowers';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 import type { ParsedReceiptItem, PriceUnit } from '@/types';
 
 export type ConfirmedLine = {
@@ -33,6 +34,8 @@ type Props = {
 };
 
 export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Props) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const [lines, setLines] = useState<ParsedReceiptItem[]>(items);
   const [matchingIndex, setMatchingIndex] = useState<number | null>(null);
   const [flowerSearch, setFlowerSearch] = useState('');
@@ -113,7 +116,7 @@ export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Pro
                       style={styles.priceInput}
                       keyboardType="decimal-pad"
                       placeholder="—"
-                      placeholderTextColor={palette.textSecondary}
+                      placeholderTextColor={theme.textSecondary}
                       value={item.price != null ? String(item.price) : ''}
                       onChangeText={(t) =>
                         patch(index, { price: t.trim() === '' ? undefined : Number(t) })
@@ -158,7 +161,7 @@ export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Pro
             <TextInput
               style={styles.matchSearch}
               placeholder="Search flowers…"
-              placeholderTextColor={palette.textSecondary}
+              placeholderTextColor={theme.textSecondary}
               value={flowerSearch}
               onChangeText={setFlowerSearch}
               autoFocus
@@ -189,113 +192,115 @@ export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Pro
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.background, paddingTop: spacing.xl },
-  title: {
-    fontFamily: typography.display,
-    fontSize: fontSize.title,
-    color: palette.textPrimary,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
-  row: {
-    flexDirection: 'row',
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  rowOff: { opacity: 0.45 },
-  check: { paddingRight: spacing.md, justifyContent: 'center' },
-  checkText: { fontSize: 22, color: palette.primary },
-  rowBody: { flex: 1 },
-  rawText: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginBottom: 2,
-  },
-  match: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.primary },
-  matchUnset: { color: palette.accent, fontStyle: 'italic' },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
-  qtyGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  ctrlLabel: { fontFamily: typography.body, fontSize: fontSize.caption, color: palette.textSecondary },
-  qtyInput: {
-    minWidth: 44,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    textAlign: 'center',
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    paddingVertical: 2,
-  },
-  priceInput: {
-    minWidth: 56,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    textAlign: 'center',
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    paddingVertical: 2,
-  },
-  unitToggle: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-    backgroundColor: palette.background,
-  },
-  unitText: { fontFamily: typography.body, fontSize: fontSize.caption, color: palette.primary },
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: palette.border,
-    backgroundColor: palette.surface,
-  },
-  cancelBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
-  cancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textSecondary },
-  confirmBtn: {
-    flex: 1,
-    backgroundColor: palette.primary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-  },
-  confirmText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
-  matchModalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  matchModal: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    maxHeight: '70%',
-  },
-  matchSearch: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontFamily: typography.body,
-    fontSize: fontSize.body,
-    color: palette.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  matchOption: {
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: palette.border,
-  },
-  matchOptionText: { fontFamily: typography.body, fontSize: fontSize.body, color: palette.textPrimary },
-  matchClose: { alignItems: 'center', paddingVertical: spacing.md },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    root: { flex: 1, backgroundColor: theme.background, paddingTop: spacing.xl },
+    title: {
+      fontFamily: typography.display,
+      fontSize: fontSize.title,
+      color: theme.textPrimary,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl },
+    row: {
+      flexDirection: 'row',
+      backgroundColor: theme.surface,
+      borderRadius: radius.md,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      padding: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    rowOff: { opacity: 0.45 },
+    check: { paddingRight: spacing.md, justifyContent: 'center' },
+    checkText: { fontSize: 22, color: theme.primary },
+    rowBody: { flex: 1 },
+    rawText: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginBottom: 2,
+    },
+    match: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.primary },
+    matchUnset: { color: theme.accent, fontStyle: 'italic' },
+    controls: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
+    qtyGroup: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+    ctrlLabel: { fontFamily: typography.body, fontSize: fontSize.caption, color: theme.textSecondary },
+    qtyInput: {
+      minWidth: 44,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      textAlign: 'center',
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      paddingVertical: 2,
+    },
+    priceInput: {
+      minWidth: 56,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      textAlign: 'center',
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      paddingVertical: 2,
+    },
+    unitToggle: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.sm,
+      backgroundColor: theme.background,
+    },
+    unitText: { fontFamily: typography.body, fontSize: fontSize.caption, color: theme.primary },
+    footer: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      padding: spacing.lg,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.border,
+      backgroundColor: theme.surface,
+    },
+    cancelBtn: { paddingVertical: spacing.md, paddingHorizontal: spacing.lg, justifyContent: 'center' },
+    cancelText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
+    confirmBtn: {
+      flex: 1,
+      backgroundColor: theme.primary,
+      borderRadius: radius.md,
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+    },
+    confirmText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
+    matchModalBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.35)',
+      justifyContent: 'center',
+      padding: spacing.lg,
+    },
+    matchModal: {
+      backgroundColor: theme.surface,
+      borderRadius: radius.lg,
+      padding: spacing.md,
+      maxHeight: '70%',
+    },
+    matchSearch: {
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border,
+      borderRadius: radius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textPrimary,
+      marginBottom: spacing.sm,
+    },
+    matchOption: {
+      paddingVertical: spacing.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: theme.border,
+    },
+    matchOptionText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textPrimary },
+    matchClose: { alignItems: 'center', paddingVertical: spacing.md },
+  });
+}

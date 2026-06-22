@@ -6,7 +6,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { flowerName } from '@/data/flowers';
 import type { InventoryRowData } from '@/hooks/useInventory';
-import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
+import { cardElevation, fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-context';
 
 function formatDate(iso?: string): string | null {
   if (!iso) return null;
@@ -22,6 +23,8 @@ export function InventoryRow({
   item: InventoryRowData;
   onAdjust: () => void;
 }) {
+  const theme = useTheme();
+  const styles = createStyles(theme);
   const fullyAllocated = item.availableStock === 0 && item.hasUnmetDemand;
   const usedPct =
     item.totalStock > 0 ? Math.round((item.allocatedStock / item.totalStock) * 100) : 0;
@@ -60,41 +63,42 @@ export function InventoryRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    backgroundColor: palette.surface,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: palette.border,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  rowWarn: { borderColor: palette.warning, borderWidth: 1.5 },
-  headerLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontFamily: typography.display, fontSize: fontSize.subtitle, color: palette.textPrimary },
-  pencil: { fontSize: 18 },
-  stats: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: 2,
-  },
-  barRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
-  available: { fontFamily: typography.body, fontSize: fontSize.caption, color: palette.textPrimary, minWidth: 92 },
-  track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: palette.progressTrack, overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 4, backgroundColor: palette.primary },
-  fillWarn: { backgroundColor: palette.warning },
-  price: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: spacing.sm,
-  },
-  warnBadge: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.accent,
-    fontWeight: '700',
-    marginTop: spacing.xs,
-  },
-});
+function createStyles(theme: ThemeTokens) {
+  return StyleSheet.create({
+    row: {
+      backgroundColor: theme.surface,
+      borderRadius: radius.lg,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      ...cardElevation(theme),
+    },
+    rowWarn: { borderColor: theme.warning, borderWidth: 1.5 },
+    headerLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    name: { fontFamily: typography.display, fontSize: fontSize.subtitle, color: theme.textPrimary },
+    pencil: { fontSize: 18 },
+    stats: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginTop: 2,
+    },
+    barRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+    available: { fontFamily: typography.body, fontSize: fontSize.caption, color: theme.textPrimary, minWidth: 92 },
+    track: { flex: 1, height: 8, borderRadius: 4, backgroundColor: theme.progressTrack, overflow: 'hidden' },
+    fill: { height: '100%', borderRadius: 4, backgroundColor: theme.primary },
+    fillWarn: { backgroundColor: theme.warning },
+    price: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textSecondary,
+      marginTop: spacing.sm,
+    },
+    warnBadge: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.accent,
+      fontWeight: '700',
+      marginTop: spacing.xs,
+    },
+  });
+}
