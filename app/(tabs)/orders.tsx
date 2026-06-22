@@ -1,0 +1,118 @@
+// Orders list (SPEC §5.2). Active orders sorted soonest-due-first, each an OrderCard
+// with swipe-right to Cancel (T022) and swipe-left to Mark Delivered (US5/T044).
+// `[+]` opens the New Order wizard. Search is wired in US6 (T047).
+
+import { router } from 'expo-router';
+import { useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { OrderCard } from '@/components/OrderCard';
+import { SearchBar } from '@/components/SearchBar';
+import { useOrders } from '@/hooks/useOrders';
+import { deleteImage } from '@/lib/images';
+import { filterOrders } from '@/lib/search';
+import { fontSize, palette, spacing, typography } from '@/lib/theme';
+import type { Order } from '@/types';
+
+export default function OrdersScreen() {
+  const insets = useSafeAreaInsets();
+  const { activeOrders, hydrated, deleteOrder, archiveOrder } = useOrders();
+  const [query, setQuery] = useState('');
+  const visibleOrders = useMemo(() => filterOrders(activeOrders, query), [activeOrders, query]);
+
+  const confirmCancel = (order: Order) =>
+    Alert.alert('Cancel Order', `Permanently delete ${order.customerName}'s order?`, [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Cancel Order',
+        style: 'destructive',
+        onPress: () => {
+          deleteOrder(order.id);
+          void deleteImage(order.referencePhotoUri);
+        },
+      },
+    ]);
+
+  const confirmDeliver = (order: Order) => {
+    const pct = Math.round(
+      (order.flowers.reduce((s, f) => s + f.fulfilledQuantity, 0) /
+        Math.max(1, order.flowers.reduce((s, f) => s + f.quantity, 0))) *
+        100
+    );
+    if (pct < 100) {
+      Alert.alert(
+        'Mark Delivered',
+        `This order is only ${pct}% supplied — mark delivered anyway?`,
+        [
+          { text: 'Not yet', style: 'cancel' },
+          { text: 'Mark Delivered', onPress: () => archiveOrder(order.id) },
+        ]
+      );
+    } else {
+      archiveOrder(order.id);
+    }
+  };
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Orders</Text>
+        <Pressable style={styles.addBtn} onPress={() => router.push('/order/new')} hitSlop={8}>
+          <Text style={styles.addBtnText}>＋</Text>
+        </Pressable>
+      </View>
+
+      <SearchBar value={query} onChangeText={setQuery} />
+
+      <FlatList
+        data={visibleOrders}
+        keyExtractor={(o) => o.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => (
+          <OrderCard
+            order={item}
+            onPress={() => router.push(`/order/${item.id}`)}
+            onCancel={() => confirmCancel(item)}
+            onMarkDelivered={() => confirmDeliver(item)}
+          />
+        )}
+        ListEmptyComponent={
+          hydrated ? (
+            <Text style={styles.empty}>
+              {query ? 'No orders match your search.' : 'No active orders. Tap ＋ to create one.'}
+            </Text>
+          ) : null
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  title: { fontFamily: typography.display, fontSize: fontSize.header, color: palette.textPrimary },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: palette.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addBtnText: { color: '#fff', fontSize: 24, lineHeight: 26 },
+  list: { paddingBottom: spacing.xl },
+  empty: {
+    fontFamily: typography.body,
+    fontSize: fontSize.body,
+    color: palette.textSecondary,
+    marginTop: spacing.xl,
+    textAlign: 'center',
+  },
+});
