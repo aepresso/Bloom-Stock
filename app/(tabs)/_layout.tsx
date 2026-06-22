@@ -7,9 +7,12 @@
 // compact cycle button placed in this persistent chrome rather than a dedicated
 // settings screen, per product decision (spec.md Assumptions).
 
+import { router } from 'expo-router';
 import { Tabs, TabList, TabSlot, TabTrigger, type TabTriggerSlotProps } from 'expo-router/ui';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import {
+  Animated,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -20,7 +23,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme, useThemeMode } from '@/lib/theme-context';
-import { spacing, typography, radius, type ThemeMode, type ThemeTokens } from '@/lib/theme';
+import { spacing, typography, radius, fontSize, type ThemeMode, type ThemeTokens } from '@/lib/theme';
+
+type QuickAction = { key: string; icon: string; label: string; onPress: () => void };
 
 type TabDef = { name: string; href: string; label: string; icon: string };
 
@@ -54,6 +59,73 @@ function ThemeToggle({ vertical, styles }: { vertical: boolean; styles: Styles }
       <Text style={styles.themeToggleIcon}>{MODE_ICON[preference]}</Text>
       {vertical ? <Text style={styles.themeToggleLabel}>{MODE_LABEL[preference]}</Text> : null}
     </Pressable>
+  );
+}
+
+/**
+ * Raised center "+" on the iPhone bottom bar (inspired by REFERENCE/ — Cronometer's
+ * oversized center tab). Tapping it pops up an animated grid of the two highest-
+ * frequency actions (New Order, Scan Receipt) instead of forcing a tab switch first.
+ */
+function QuickActionFab({ styles }: { styles: Styles }) {
+  const [visible, setVisible] = useState(false);
+  const [scale] = useState(() => new Animated.Value(0.8));
+  const [opacity] = useState(() => new Animated.Value(0));
+
+  const open = () => {
+    setVisible(true);
+    scale.setValue(0.8);
+    opacity.setValue(0);
+    Animated.parallel([
+      Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 8 }),
+      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const close = () => setVisible(false);
+
+  const actions: QuickAction[] = [
+    {
+      key: 'new-order',
+      icon: '📋',
+      label: 'New Order',
+      onPress: () => {
+        close();
+        router.push('/order/new');
+      },
+    },
+    {
+      key: 'scan-receipt',
+      icon: '📷',
+      label: 'Scan Receipt',
+      onPress: () => {
+        close();
+        router.push('/stock?action=scan');
+      },
+    },
+  ];
+
+  return (
+    <>
+      <Pressable style={styles.fab} onPress={open} hitSlop={8}>
+        <Text style={styles.fabIcon}>+</Text>
+      </Pressable>
+
+      <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+        <Pressable style={styles.fabBackdrop} onPress={close}>
+          <Animated.View style={[styles.fabSheet, { opacity, transform: [{ scale }] }]}>
+            {actions.map((a) => (
+              <Pressable key={a.key} style={styles.fabAction} onPress={a.onPress}>
+                <View style={styles.fabActionIconWrap}>
+                  <Text style={styles.fabActionIcon}>{a.icon}</Text>
+                </View>
+                <Text style={styles.fabActionLabel}>{a.label}</Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -99,6 +171,9 @@ export default function TabsLayout() {
       <TabButton icon={t.icon} label={t.label} isVertical={isWide} styles={styles} />
     </TabTrigger>
   ));
+  // Bottom bar only: split 2-and-2 around the raised center "+" (REFERENCE/ pattern).
+  const leftTriggers = triggers.slice(0, 2);
+  const rightTriggers = triggers.slice(2);
 
   return (
     <Tabs style={[styles.root, isWide && styles.rootWide]}>
@@ -123,7 +198,9 @@ export default function TabsLayout() {
             <TabSlot />
           </View>
           <TabList style={[styles.bottomBar, { paddingBottom: insets.bottom || spacing.sm }]}>
-            {triggers}
+            {leftTriggers}
+            <QuickActionFab styles={styles} />
+            {rightTriggers}
             <ThemeToggle vertical={false} styles={styles} />
           </TabList>
         </>
@@ -212,6 +289,52 @@ function createStyles(theme: ThemeTokens) {
       fontFamily: typography.body,
       fontSize: 15,
       color: theme.textSecondary,
+    },
+
+    fab: {
+      width: 52,
+      height: 52,
+      borderRadius: 26,
+      marginTop: -20, // raised above the bar line, like the REFERENCE/ center tab
+      backgroundColor: theme.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 4,
+    },
+    fabIcon: { color: '#fff', fontSize: 30, lineHeight: 32, marginTop: -2 },
+    fabBackdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.4)',
+      justifyContent: 'flex-end',
+    },
+    fabSheet: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.xl,
+      backgroundColor: theme.surface,
+      borderTopLeftRadius: radius.xl,
+      borderTopRightRadius: radius.xl,
+      paddingVertical: spacing.xl,
+      paddingHorizontal: spacing.xl,
+    },
+    fabAction: { alignItems: 'center', gap: spacing.sm },
+    fabActionIconWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: theme.flowerCard,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    fabActionIcon: { fontSize: 26 },
+    fabActionLabel: {
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      color: theme.textPrimary,
     },
   });
 }

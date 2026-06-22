@@ -5,7 +5,8 @@
 // Recent Receipts are read-only.
 
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -43,6 +44,7 @@ export default function StockScreen() {
   const { confirmReceipt } = useInventory();
   const { recentReceipts } = useReceipts();
   const recencyOrder = useRecencyOrder();
+  const { action } = useLocalSearchParams<{ action?: string }>();
 
   const [pipeline, setPipeline] = useState<Pipeline>({ phase: 'idle' });
   const [manualQuantities, setManualQuantities] = useState<Record<string, number>>({});
@@ -71,6 +73,15 @@ export default function StockScreen() {
       setPipeline({ phase: 'manual', imageUri });
     }
   };
+
+  // Auto-launch the camera once when arriving from the FAB's Scan Receipt action.
+  const scanTriggered = useRef(false);
+  useEffect(() => {
+    if (action === 'scan' && !scanTriggered.current) {
+      scanTriggered.current = true;
+      void start(true);
+    }
+  }, [action]);
 
   const onConfirmParsed = (lines: ConfirmedLine[]) => {
     if (pipeline.phase !== 'confirm') return;
