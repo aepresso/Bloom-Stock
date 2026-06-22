@@ -36,7 +36,6 @@ type State = {
 
 type ReceiptInput = {
   imageUri: string;
-  rawOcrText: string;
   items: {
     flowerId: string;
     quantity: number;
@@ -185,7 +184,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ownerId: DEFAULT_OWNER_ID,
         submittedAt: today,
         imageUri: input.imageUri,
-        rawOcrText: input.rawOcrText,
         parsedItems: input.items.map<ParsedReceiptItem>((l) => ({
           rawText: '',
           matchedFlowerId: l.flowerId,

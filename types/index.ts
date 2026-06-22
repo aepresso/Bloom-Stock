@@ -82,8 +82,7 @@ export type StockingReceipt = {
   id: string; // UUID
   ownerId: string;
   submittedAt: string;
-  imageUri: string; // local file in document directory
-  rawOcrText: string;
+  imageUri: string; // local file in document directory, or a data URL on web
   parsedItems: ParsedReceiptItem[];
   confirmed: boolean;
 };

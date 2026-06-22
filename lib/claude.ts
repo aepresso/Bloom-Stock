@@ -1,7 +1,9 @@
-// Claude receipt-interpretation client (contracts/claude-receipt-parsing.md). Direct
-// on-device fetch to the Anthropic Messages API with the bundled key (research §5).
-// Every failure mode — network, non-2xx, malformed completion — is classified and
-// surfaced so the Stocking screen can route all three to manual entry (SPEC §5.4).
+// Claude receipt-interpretation client. Direct on-device fetch to the Anthropic
+// Messages API with the bundled key (research §5). The receipt photo is sent
+// straight to Claude as a multimodal image block — no on-device OCR step — since
+// Claude reads the receipt itself. Every failure mode — network, non-2xx,
+// malformed completion — is classified and surfaced so the Stocking screen can
+// route all three to manual entry (SPEC §5.4).
 //
 // Constitution Principle I/V: the API response is an untrusted boundary, so the
 // completion is validated item-by-item before being mapped into ParsedReceiptItem[].
@@ -9,32 +11,26 @@
 import Constants from 'expo-constants';
 
 import { FLOWERS, resolveFlowerIdByName } from '@/data/flowers';
+import { imageToBase64 } from '@/lib/images';
 import type { ParsedReceiptItem, PriceUnit } from '@/types';
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-6';
 const ANTHROPIC_VERSION = '2023-06-01';
 
-// Verbatim from contracts/claude-receipt-parsing.md (itself from SPEC §5.4).
-export const RECEIPT_PROMPT_TEMPLATE = `You are parsing a grocery/flower shop receipt.
-Given the raw OCR text below, identify all flower items and their quantities (stem count or bunch count).
+export const RECEIPT_PROMPT_TEMPLATE = `You are reading a photo of a grocery/flower shop receipt.
+Identify all flower items and their quantities (stem count or bunch count).
 Extract the price for each item exactly as printed, along with whether it's priced per stem or per bunch — do not convert between units.
 Return ONLY a JSON array with no markdown, no preamble:
 [{ "rawText": "...", "matchedFlowerName": "...", "quantity": 0, "price": 0.00, "priceUnit": "stem" }]
 If you cannot match a line to a known flower, set matchedFlowerName to null.
 If price is not visible on the receipt, set price and priceUnit to null.
 
-Known flowers: [inject flower list here]
+Known flowers: [inject flower list here]`;
 
-OCR Text:
-[inject raw text here]`;
-
-function buildPrompt(ocrText: string): string {
+function buildPrompt(): string {
   const flowerList = FLOWERS.map((f) => f.name).join(', ');
-  return RECEIPT_PROMPT_TEMPLATE.replace('[inject flower list here]', flowerList).replace(
-    '[inject raw text here]',
-    ocrText
-  );
+  return RECEIPT_PROMPT_TEMPLATE.replace('[inject flower list here]', flowerList);
 }
 
 function apiKey(): string {
@@ -103,13 +99,24 @@ function mapValidatedItems(parsed: unknown): ParsedReceiptItem[] {
 }
 
 /**
- * Interpret OCR text into receipt line items. Never throws — returns a discriminated
+ * Interpret a receipt photo into line items by sending the image directly to
+ * Claude's vision-capable Messages API. Never throws — returns a discriminated
  * result so the caller can branch to the confirmation sheet (ok) or manual entry
  * (any error kind).
  */
-export async function parseReceipt(ocrText: string): Promise<ParseReceiptResult> {
+export async function parseReceiptFromImage(imageUri: string): Promise<ParseReceiptResult> {
   const key = apiKey();
   if (!key) return { ok: false, error: 'no-key' };
+
+  let base64: string;
+  let mediaType: string;
+  try {
+    const decoded = await imageToBase64(imageUri);
+    base64 = decoded.base64;
+    mediaType = decoded.mediaType;
+  } catch {
+    return { ok: false, error: 'malformed' };
+  }
 
   let response: Response;
   try {
@@ -123,7 +130,15 @@ export async function parseReceipt(ocrText: string): Promise<ParseReceiptResult>
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 2048,
-        messages: [{ role: 'user', content: buildPrompt(ocrText) }],
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+              { type: 'text', text: buildPrompt() },
+            ],
+          },
+        ],
       }),
     });
   } catch {

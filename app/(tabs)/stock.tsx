@@ -1,8 +1,8 @@
 // Stocking screen (SPEC §5.4). Scan (camera) or Upload (library, images only) →
-// on-device Vision OCR → Claude interpretation → ReceiptConfirmSheet → Confirm →
-// inventory update. ANY failure in the OCR/Claude path (no native module, no network,
-// API error, malformed completion) falls back to manual entry via FlowerPickerGrid,
-// still showing whatever OCR text was captured. Recent Receipts are read-only.
+// Claude reads the photo directly (no on-device OCR) → ReceiptConfirmSheet → Confirm
+// → inventory update. ANY failure in the Claude path (no network, no API key, API
+// error, malformed completion) falls back to manual entry via FlowerPickerGrid.
+// Recent Receipts are read-only.
 
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
@@ -24,17 +24,16 @@ import { flowerName } from '@/data/flowers';
 import { useInventory } from '@/hooks/useInventory';
 import { useReceipts } from '@/hooks/useReceipts';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
-import { parseReceipt } from '@/lib/claude';
+import { parseReceiptFromImage } from '@/lib/claude';
 import { persistImage } from '@/lib/images';
-import { extractReceiptText } from '@/lib/ocr';
 import { fontSize, palette, radius, spacing, typography } from '@/lib/theme';
 import type { ParsedReceiptItem, StockingReceipt } from '@/types';
 
 type Pipeline =
   | { phase: 'idle' }
   | { phase: 'processing' }
-  | { phase: 'confirm'; imageUri: string; rawOcrText: string; items: ParsedReceiptItem[] }
-  | { phase: 'manual'; imageUri: string; rawOcrText: string };
+  | { phase: 'confirm'; imageUri: string; items: ParsedReceiptItem[] }
+  | { phase: 'manual'; imageUri: string };
 
 export default function StockScreen() {
   const insets = useSafeAreaInsets();
@@ -60,27 +59,19 @@ export default function StockScreen() {
     setPipeline({ phase: 'processing' });
     const imageUri = await persistImage(result.assets[0].uri);
 
-    // OCR is captured regardless of the API call's success (data-model.md).
-    let rawOcrText = '';
-    try {
-      rawOcrText = await extractReceiptText(imageUri);
-    } catch {
-      rawOcrText = '';
-    }
-
-    const parsed = await parseReceipt(rawOcrText);
+    const parsed = await parseReceiptFromImage(imageUri);
     if (parsed.ok && parsed.items.length > 0) {
-      setPipeline({ phase: 'confirm', imageUri, rawOcrText, items: parsed.items });
+      setPipeline({ phase: 'confirm', imageUri, items: parsed.items });
     } else {
       // Any failure (or an empty parse) → manual entry fallback.
       setManualQuantities({});
-      setPipeline({ phase: 'manual', imageUri, rawOcrText });
+      setPipeline({ phase: 'manual', imageUri });
     }
   };
 
   const onConfirmParsed = (lines: ConfirmedLine[]) => {
     if (pipeline.phase !== 'confirm') return;
-    confirmReceipt({ imageUri: pipeline.imageUri, rawOcrText: pipeline.rawOcrText, items: lines });
+    confirmReceipt({ imageUri: pipeline.imageUri, items: lines });
     setPipeline({ phase: 'idle' });
   };
 
@@ -93,7 +84,7 @@ export default function StockScreen() {
       setPipeline({ phase: 'idle' });
       return;
     }
-    confirmReceipt({ imageUri: pipeline.imageUri, rawOcrText: pipeline.rawOcrText, items });
+    confirmReceipt({ imageUri: pipeline.imageUri, items });
     setPipeline({ phase: 'idle' });
   };
 
@@ -141,7 +132,6 @@ export default function StockScreen() {
       {pipeline.phase === 'confirm' ? (
         <ReceiptConfirmSheet
           visible
-          rawOcrText={pipeline.rawOcrText}
           items={pipeline.items}
           onCancel={() => setPipeline({ phase: 'idle' })}
           onConfirm={onConfirmParsed}
@@ -160,11 +150,6 @@ export default function StockScreen() {
             Couldn&apos;t auto-read this receipt — add the flowers you bought. Price defaults to
             each flower&apos;s last recorded price.
           </Text>
-          {pipeline.phase === 'manual' && pipeline.rawOcrText ? (
-            <Text style={styles.manualOcr} numberOfLines={3}>
-              {pipeline.rawOcrText}
-            </Text>
-          ) : null}
           <View style={styles.manualGrid}>
             <FlowerPickerGrid
               quantities={manualQuantities}
@@ -205,12 +190,6 @@ export default function StockScreen() {
               {it.price != null ? ` · $${it.price.toFixed(2)}/${it.priceUnit ?? 'stem'}` : ''}
             </Text>
           ))}
-          {viewing?.rawOcrText ? (
-            <>
-              <Text style={styles.sectionTitle}>OCR text</Text>
-              <Text style={styles.manualOcr}>{viewing.rawOcrText}</Text>
-            </>
-          ) : null}
           <Pressable style={styles.sheetCancel} onPress={() => setViewing(null)}>
             <Text style={styles.sheetCancelText}>Close</Text>
           </Pressable>
@@ -258,12 +237,6 @@ const styles = StyleSheet.create({
   processingText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body },
   manualRoot: { flex: 1, backgroundColor: palette.background, paddingHorizontal: spacing.lg },
   manualHint: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    marginTop: spacing.sm,
-  },
-  manualOcr: {
     fontFamily: typography.body,
     fontSize: fontSize.caption,
     color: palette.textSecondary,

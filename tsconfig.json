@@ -13,5 +13,5 @@
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],
-  "exclude": ["node_modules", "specs", "modules/vision-ocr/ios"]
+  "exclude": ["node_modules", "specs"]
 }

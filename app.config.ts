@@ -1,8 +1,9 @@
 import type { ExpoConfig } from 'expo/config';
 
-// BloomStock — single-user florist order management app (v1, iOS only).
-// Uses app.config.ts (not app.json) so we can wire in the EXPO_PUBLIC Anthropic
-// key, the dev-client, and the native Vision OCR config plugin.
+// BloomStock — single-user florist order management app (v1). Runs as a PWA
+// (web, installable to the Home Screen on iPad/iPhone via Safari) plus native
+// iOS/Android via plain Expo Go — no custom native modules or dev client.
+// Uses app.config.ts (not app.json) so we can wire in the EXPO_PUBLIC Anthropic key.
 const config: ExpoConfig = {
   name: 'BloomStock',
   slug: 'bloom-stock',
@@ -22,10 +23,13 @@ const config: ExpoConfig = {
         'BloomStock lets you attach receipt images and order reference photos from your library.',
     },
   },
+  web: {
+    bundler: 'metro',
+    output: 'static',
+    favicon: './assets/images/icon.png',
+  },
   plugins: [
     'expo-router',
-    'expo-dev-client',
-    './modules/vision-ocr/app.plugin.js',
     [
       'expo-splash-screen',
       {

@@ -5,7 +5,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 import { Image } from 'expo-image';
-import { useState } from 'react';
+import { createElement, useState } from 'react';
 import {
   Platform,
   Pressable,
@@ -87,6 +87,28 @@ export function DueDateField({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // @react-native-community/datetimepicker has no web implementation — use a
+  // native HTML date input there instead (created imperatively to avoid pulling
+  // in DOM JSX typings on a React Native project).
+  if (Platform.OS === 'web') {
+    return (
+      <View style={styles.field}>
+        <FieldLabel>Due Date</FieldLabel>
+        {createElement('input', {
+          type: 'date',
+          value: date.toISOString().slice(0, 10),
+          min: today.toISOString().slice(0, 10),
+          onChange: (e: { target: { value: string } }) => {
+            if (!e.target.value) return;
+            const picked = new Date(`${e.target.value}T12:00:00`);
+            onChange(picked.toISOString());
+          },
+          style: webDateInputStyle,
+        })}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.field}>
       <FieldLabel>Due Date</FieldLabel>
@@ -110,6 +132,18 @@ export function DueDateField({
     </View>
   );
 }
+
+const webDateInputStyle: Record<string, string | number> = {
+  backgroundColor: palette.surface,
+  border: `1px solid ${palette.border}`,
+  borderRadius: radius.md,
+  padding: spacing.md,
+  fontFamily: typography.body,
+  fontSize: fontSize.body,
+  color: palette.textPrimary,
+  width: '100%',
+  boxSizing: 'border-box',
+};
 
 /** Camera/library reference-photo picker; persists the chosen image locally (5.3). */
 export function PhotoPicker({

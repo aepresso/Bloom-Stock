@@ -27,13 +27,12 @@ export type ConfirmedLine = {
 
 type Props = {
   visible: boolean;
-  rawOcrText: string;
   items: ParsedReceiptItem[];
   onCancel: () => void;
   onConfirm: (lines: ConfirmedLine[]) => void;
 };
 
-export function ReceiptConfirmSheet({ visible, rawOcrText, items, onCancel, onConfirm }: Props) {
+export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Props) {
   const [lines, setLines] = useState<ParsedReceiptItem[]>(items);
   const [matchingIndex, setMatchingIndex] = useState<number | null>(null);
   const [flowerSearch, setFlowerSearch] = useState('');
@@ -135,14 +134,6 @@ export function ReceiptConfirmSheet({ visible, rawOcrText, items, onCancel, onCo
               </View>
             </View>
           )}
-          ListFooterComponent={
-            rawOcrText ? (
-              <View style={styles.ocrBlock}>
-                <Text style={styles.ocrLabel}>OCR text</Text>
-                <Text style={styles.ocrText}>{rawOcrText}</Text>
-              </View>
-            ) : null
-          }
         />
 
         <View style={styles.footer}>
@@ -259,15 +250,6 @@ const styles = StyleSheet.create({
     backgroundColor: palette.background,
   },
   unitText: { fontFamily: typography.body, fontSize: fontSize.caption, color: palette.primary },
-  ocrBlock: { marginTop: spacing.lg },
-  ocrLabel: {
-    fontFamily: typography.body,
-    fontSize: fontSize.caption,
-    color: palette.textSecondary,
-    textTransform: 'uppercase',
-    marginBottom: spacing.xs,
-  },
-  ocrText: { fontFamily: typography.body, fontSize: fontSize.caption, color: palette.textSecondary },
   footer: {
     flexDirection: 'row',
     gap: spacing.md,
