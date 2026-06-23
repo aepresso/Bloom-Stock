@@ -9,6 +9,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -68,6 +69,11 @@ export default function StockScreen() {
     if (parsed.ok && parsed.items.length > 0) {
       setPipeline({ phase: 'confirm', imageUri, items: parsed.items });
     } else {
+      // TEMPORARY: surface the raw failure reason so receipt-parsing issues are
+      // debuggable instead of disappearing into a silent fallback.
+      if (!parsed.ok) {
+        Alert.alert(`Receipt parsing failed (${parsed.error})`, parsed.detail ?? 'No detail available.');
+      }
       // Any failure (or an empty parse) → manual entry fallback.
       setManualQuantities({});
       setPipeline({ phase: 'manual', imageUri });

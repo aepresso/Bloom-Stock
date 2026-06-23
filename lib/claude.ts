@@ -42,7 +42,10 @@ export type ClaudeErrorKind = 'network' | 'api' | 'malformed' | 'no-key';
 
 export type ParseReceiptResult =
   | { ok: true; items: ParsedReceiptItem[] }
-  | { ok: false; error: ClaudeErrorKind };
+  // `detail` is the raw failure text (network error message, HTTP status + body
+  // snippet, etc.) — TEMPORARY, surfaced to the user via Alert in stock.tsx so
+  // real failures are debuggable instead of silently falling back to manual entry.
+  | { ok: false; error: ClaudeErrorKind; detail?: string };
 
 /** Pull the completion text out of an OpenAI-Chat-Completions-shaped response body. */
 function extractCompletionText(body: unknown): string | null {
@@ -105,7 +108,13 @@ function mapValidatedItems(parsed: unknown): ParsedReceiptItem[] {
  */
 export async function parseReceiptFromImage(imageUri: string): Promise<ParseReceiptResult> {
   const key = apiKey();
-  if (!key) return { ok: false, error: 'no-key' };
+  if (!key) {
+    return {
+      ok: false,
+      error: 'no-key',
+      detail: 'No OpenRouter API key configured (EXPO_PUBLIC_OPENROUTER_API_KEY is empty).',
+    };
+  }
 
   let base64: string;
   let mediaType: string;
@@ -113,8 +122,8 @@ export async function parseReceiptFromImage(imageUri: string): Promise<ParseRece
     const decoded = await imageToBase64(imageUri);
     base64 = decoded.base64;
     mediaType = decoded.mediaType;
-  } catch {
-    return { ok: false, error: 'malformed' };
+  } catch (err) {
+    return { ok: false, error: 'malformed', detail: `Image decode failed: ${String(err)}` };
   }
 
   let response: Response;
@@ -139,26 +148,43 @@ export async function parseReceiptFromImage(imageUri: string): Promise<ParseRece
         ],
       }),
     });
-  } catch {
-    return { ok: false, error: 'network' };
+  } catch (err) {
+    return { ok: false, error: 'network', detail: `Request failed: ${String(err)}` };
   }
 
-  if (!response.ok) return { ok: false, error: 'api' };
+  if (!response.ok) {
+    const bodyText = await response.text().catch(() => '');
+    return {
+      ok: false,
+      error: 'api',
+      detail: `HTTP ${response.status} ${response.statusText}: ${bodyText.slice(0, 500)}`,
+    };
+  }
 
   let body: unknown;
   try {
     body = await response.json();
-  } catch {
-    return { ok: false, error: 'malformed' };
+  } catch (err) {
+    return { ok: false, error: 'malformed', detail: `Response JSON parse failed: ${String(err)}` };
   }
 
   const completion = extractCompletionText(body);
-  if (completion == null) return { ok: false, error: 'malformed' };
+  if (completion == null) {
+    return {
+      ok: false,
+      error: 'malformed',
+      detail: `No completion text in response: ${JSON.stringify(body).slice(0, 500)}`,
+    };
+  }
 
   try {
     const parsed = JSON.parse(completion);
     return { ok: true, items: mapValidatedItems(parsed) };
-  } catch {
-    return { ok: false, error: 'malformed' };
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'malformed',
+      detail: `Completion wasn't valid JSON: ${String(err)} — raw: ${completion.slice(0, 500)}`,
+    };
   }
 }
