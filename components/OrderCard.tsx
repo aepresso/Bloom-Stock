@@ -4,6 +4,7 @@
 // actions: left → Mark Delivered (US5/T044), right → Cancel Order (US1/T022). The
 // `muted` variant is the Archive palette (SPEC §5.6).
 
+import { useRef } from 'react';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -35,6 +36,7 @@ type Props = {
 export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: Props) {
   const theme = useTheme();
   const styles = createStyles(theme);
+  const swipeableRef = useRef<Swipeable>(null);
   const ratio = fulfillmentRatio(order);
   const pct = Math.round(ratio * 100);
   const fullySupplied = ratio >= 1 && order.flowers.length > 0;
@@ -58,7 +60,7 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
       <Text style={[styles.meta, muted && styles.textMuted]}>
         {order.deliveryType === 'delivery' ? 'Delivery' : 'Pickup'} · 💰{' '}
         {PAYMENT_LABEL[order.paymentStatus]}
-        {order.totalPrice != null ? ` · $${order.totalPrice}` : ''}
+        {order.totalPrice != null ? ` · $${order.totalPrice.toFixed(2)}` : ''}
       </Text>
 
       <View style={styles.progressTrack}>
@@ -80,6 +82,7 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
 
   return (
     <Swipeable
+      ref={swipeableRef}
       renderLeftActions={
         onMarkDelivered
           ? () => (
@@ -89,7 +92,10 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
             )
           : undefined
       }
-      onSwipeableLeftOpen={onMarkDelivered}
+      onSwipeableLeftOpen={() => {
+        swipeableRef.current?.close();
+        onMarkDelivered?.();
+      }}
       renderRightActions={
         onCancel
           ? () => (
@@ -99,7 +105,10 @@ export function OrderCard({ order, onPress, onCancel, onMarkDelivered, muted }: 
             )
           : undefined
       }
-      onSwipeableRightOpen={onCancel}
+      onSwipeableRightOpen={() => {
+        swipeableRef.current?.close();
+        onCancel?.();
+      }}
     >
       {card}
     </Swipeable>

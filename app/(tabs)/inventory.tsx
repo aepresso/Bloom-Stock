@@ -43,7 +43,7 @@ export default function InventoryScreen() {
     closeSheet();
   };
 
-  const canSubmit = Number(delta) !== 0 && reason.trim().length > 0;
+  const canSubmit = Math.floor(Number(delta) || 0) !== 0 && reason.trim().length > 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>

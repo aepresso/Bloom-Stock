@@ -181,7 +181,7 @@ export default function TabsLayout() {
         // iPad: persistent left sidebar + content fills the rest.
         <>
           <TabList style={[styles.sidebar, { paddingTop: insets.top + spacing.lg }]}>
-            <Text style={styles.sidebarBrand}>BloomxAvenue</Text>
+            <Text style={styles.sidebarBrand}>BloomxStock</Text>
             {triggers}
             <View style={styles.sidebarFooter}>
               <ThemeToggle vertical styles={styles} />

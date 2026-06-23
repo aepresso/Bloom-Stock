@@ -118,9 +118,10 @@ export function ReceiptConfirmSheet({ visible, items, onCancel, onConfirm }: Pro
                       placeholder="—"
                       placeholderTextColor={theme.textSecondary}
                       value={item.price != null ? String(item.price) : ''}
-                      onChangeText={(t) =>
-                        patch(index, { price: t.trim() === '' ? undefined : Number(t) })
-                      }
+                      onChangeText={(t) => {
+                        const n = Number(t);
+                        patch(index, { price: t.trim() === '' || Number.isNaN(n) ? undefined : n });
+                      }}
                     />
                   </View>
                   <Pressable

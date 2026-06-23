@@ -108,6 +108,15 @@ function FlowerCard({
   const [draft, setDraft] = useState(String(qty || ''));
   const [scale] = useState(() => new Animated.Value(1));
 
+  // Keep the typed draft in sync when the card is collapsed (i.e. not being
+  // actively edited) so a stale typed value can't reappear if `qty` changes
+  // from elsewhere (e.g. cleared by the parent) while this card stays mounted.
+  const [seededQty, setSeededQty] = useState(qty);
+  if (!expanded && seededQty !== qty) {
+    setSeededQty(qty);
+    setDraft(String(qty || ''));
+  }
+
   const commitTyped = () => {
     const n = Math.max(0, Math.floor(Number(draft) || 0));
     onSetQuantity(n);

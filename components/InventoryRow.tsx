@@ -96,7 +96,7 @@ function createStyles(theme: ThemeTokens) {
     warnBadge: {
       fontFamily: typography.body,
       fontSize: fontSize.caption,
-      color: theme.accent,
+      color: theme.warning,
       fontWeight: '700',
       marginTop: spacing.xs,
     },

@@ -3,7 +3,7 @@
 // explicit user override, and exposes both via context so every screen/component
 // reads colors through `useTheme()` instead of importing a static palette.
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Appearance } from 'react-native';
 
 import { darkPalette, lightPalette, type ThemeMode, type ThemeTokens } from '@/lib/theme';
@@ -40,6 +40,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     Appearance.getColorScheme() === 'dark' ? 'dark' : 'light'
   );
   const [preference, setPreferenceState] = useState<ThemeMode>('system');
+  // Guards against the async load-on-launch effect (below) clobbering a user choice
+  // made via setPreference() before that load resolves (race condition).
+  const userOverrideRef = useRef(false);
 
   // Live-update while in "system" mode (FR-007). A manual preference is unaffected
   // since `resolve()` only consults `osScheme` when preference === 'system'.
@@ -56,7 +59,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     let active = true;
     (async () => {
       const stored = await themePreferenceStore.get();
-      if (!active) return;
+      // Skip applying the persisted value if the user already changed the
+      // preference (via setPreference) while this load was in flight — otherwise
+      // their just-made choice gets silently reverted once the load resolves.
+      if (!active || userOverrideRef.current) return;
       setPreferenceState(stored);
       applyNativeColorScheme(stored);
     })();
@@ -66,6 +72,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setPreference = (mode: ThemeMode) => {
+    userOverrideRef.current = true;
     setPreferenceState(mode);
     applyNativeColorScheme(mode);
     void themePreferenceStore.set(mode);

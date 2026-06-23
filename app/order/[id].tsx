@@ -103,6 +103,10 @@ export default function OrderDetailScreen() {
       Alert.alert('Missing info', 'Add a customer name, due date, and at least one flower.');
       return;
     }
+    // If the photo was replaced or removed, the old file is now orphaned — clean it up.
+    if (order.referencePhotoUri && order.referencePhotoUri !== referencePhotoUri) {
+      void deleteImage(order.referencePhotoUri);
+    }
     updateOrder(order.id, {
       customerName: customerName.trim(),
       instagramHandle: instagramHandle.trim().replace(/^@/, '') || undefined,
@@ -127,6 +131,10 @@ export default function OrderDetailScreen() {
         onPress: () => {
           deleteOrder(order.id);
           void deleteImage(order.referencePhotoUri);
+          // Also clean up a picked-but-never-saved replacement photo, if any.
+          if (referencePhotoUri && referencePhotoUri !== order.referencePhotoUri) {
+            void deleteImage(referencePhotoUri);
+          }
           router.back();
         },
       },

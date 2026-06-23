@@ -122,6 +122,15 @@ export function DueDateField({
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
+  // Local-date (not UTC) yyyy-mm-dd, since toISOString() converts to UTC and
+  // can roll the displayed/min date back a day for timezones behind UTC.
+  const toLocalDateString = (d: Date) => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   // @react-native-community/datetimepicker has no web implementation — use a
   // native HTML date input there instead (created imperatively to avoid pulling
   // in DOM JSX typings on a React Native project).
@@ -131,8 +140,8 @@ export function DueDateField({
         <FieldLabel>Due Date</FieldLabel>
         {createElement('input', {
           type: 'date',
-          value: date.toISOString().slice(0, 10),
-          min: today.toISOString().slice(0, 10),
+          value: toLocalDateString(date),
+          min: toLocalDateString(today),
           onChange: (e: { target: { value: string } }) => {
             if (!e.target.value) return;
             const picked = new Date(`${e.target.value}T12:00:00`);

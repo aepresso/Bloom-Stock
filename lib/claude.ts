@@ -72,12 +72,15 @@ function mapValidatedItems(parsed: unknown): ParsedReceiptItem[] {
     if (typeof raw !== 'object' || raw === null) continue;
     const o = raw as Record<string, unknown>;
 
-    const quantity =
-      typeof o.quantity === 'number' && o.quantity > 0 ? Math.floor(o.quantity) : 1;
+    const quantityValid = typeof o.quantity === 'number' && o.quantity > 0;
+    const quantity = quantityValid ? Math.floor(o.quantity as number) : 1;
 
     // Resolve the matched name to a known flower id; unresolved → unmatched line.
+    // An invalid quantity is also a schema-invalid item (contract error table) — drop
+    // it to the unmatched state too, rather than silently confirming a fabricated
+    // quantity of 1 against a real flower match.
     const name = typeof o.matchedFlowerName === 'string' ? o.matchedFlowerName : null;
-    const matchedFlowerId = name ? resolveFlowerIdByName(name) : undefined;
+    const matchedFlowerId = name && quantityValid ? resolveFlowerIdByName(name) : undefined;
 
     const price = typeof o.price === 'number' ? o.price : undefined;
     const priceUnit = isPriceUnit(o.priceUnit) ? o.priceUnit : undefined;

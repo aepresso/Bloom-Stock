@@ -5,7 +5,7 @@
 // Recent Receipts are read-only.
 
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -74,12 +74,20 @@ export default function StockScreen() {
     }
   };
 
-  // Auto-launch the camera once when arriving from the FAB's Scan Receipt action.
-  const scanTriggered = useRef(false);
+  // Auto-launch the camera when arriving from the FAB's Scan Receipt action. The tab
+  // screen stays mounted across tab switches, so a plain "ran once" ref would only
+  // fire the very first time the FAB is used all session. Instead we clear the
+  // `action` param immediately after consuming it — that both prevents re-firing on
+  // unrelated re-renders and lets a fresh FAB tap (which re-pushes the same param)
+  // trigger the camera again.
+  const scanHandled = useRef(false);
   useEffect(() => {
-    if (action === 'scan' && !scanTriggered.current) {
-      scanTriggered.current = true;
+    if (action === 'scan' && !scanHandled.current) {
+      scanHandled.current = true;
+      router.setParams({ action: undefined });
       void start(true);
+    } else if (action !== 'scan') {
+      scanHandled.current = false;
     }
   }, [action]);
 
