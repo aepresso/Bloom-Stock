@@ -81,11 +81,22 @@ export function consumeForArchive(order: Order, inventory: InventoryItem[]): Inv
   });
 }
 
+/** One active order's contribution to a flower's demand (002-ui-redesign expansion). */
+export type DemandLine = {
+  orderId: string;
+  customerName: string;
+  dueDate: string;
+  quantity: number; // stems this order wants
+  fulfilledQuantity: number; // stems currently allocated to it
+};
+
 export type ShoppingListEntry = {
   flowerId: string;
   deficit: number; // needed across active orders minus totalStock, > 0
   earliestOrderId: string; // the soonest-due active order driving the shortfall
   earliestDueDate: string;
+  /** Every active order demanding this flower, soonest-due first. */
+  demand: DemandLine[];
 };
 
 /**
@@ -102,6 +113,7 @@ export function deriveShoppingList(
 
   const needed = new Map<string, number>();
   const earliest = new Map<string, { orderId: string; dueDate: string }>();
+  const demandOf = new Map<string, DemandLine[]>();
 
   for (const order of orders) {
     if (order.status !== 'active') continue;
@@ -111,6 +123,15 @@ export function deriveShoppingList(
       if (!cur || order.dueDate.localeCompare(cur.dueDate) < 0) {
         earliest.set(of.flowerId, { orderId: order.id, dueDate: order.dueDate });
       }
+      const lines = demandOf.get(of.flowerId) ?? [];
+      lines.push({
+        orderId: order.id,
+        customerName: order.customerName,
+        dueDate: order.dueDate,
+        quantity: of.quantity,
+        fulfilledQuantity: of.fulfilledQuantity,
+      });
+      demandOf.set(of.flowerId, lines);
     }
   }
 
@@ -124,10 +145,35 @@ export function deriveShoppingList(
       deficit,
       earliestOrderId: e.orderId,
       earliestDueDate: e.dueDate,
+      demand: (demandOf.get(flowerId) ?? []).sort((a, b) =>
+        a.dueDate.localeCompare(b.dueDate)
+      ),
     });
   }
 
   return entries.sort((a, b) => a.earliestDueDate.localeCompare(b.earliestDueDate));
+}
+
+/**
+ * Which active orders a flower's allocated stems are committed to (002-ui-redesign
+ * inventory-row expansion). Soonest-due first, matching allocation priority.
+ */
+export function allocationsForFlower(flowerId: string, orders: Order[]): DemandLine[] {
+  const lines: DemandLine[] = [];
+  for (const order of orders) {
+    if (order.status !== 'active') continue;
+    for (const of of order.flowers) {
+      if (of.flowerId !== flowerId) continue;
+      lines.push({
+        orderId: order.id,
+        customerName: order.customerName,
+        dueDate: order.dueDate,
+        quantity: of.quantity,
+        fulfilledQuantity: of.fulfilledQuantity,
+      });
+    }
+  }
+  return lines.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
 /** Order fulfillment fraction in [0,1]: sum(fulfilled)/sum(quantity). 0 flowers → 0. */

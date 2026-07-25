@@ -1,8 +1,14 @@
-// Stocking screen (SPEC §5.4). Scan (camera) or Upload (library, images only) →
-// Claude reads the photo directly (no on-device OCR) → ReceiptConfirmSheet → Confirm
-// → inventory update. ANY failure in the Claude path (no network, no API key, API
-// error, malformed completion) falls back to manual entry via FlowerPickerGrid.
-// Recent Receipts are read-only.
+// Stock-In flow (flow redesign). Stocking is an action, not a tab: this pushed
+// modal route hosts the receipt pipeline that used to live on the Stock tab —
+// Scan (camera) or Upload (library) → Claude reads the photo → ReceiptConfirmSheet
+// → Confirm → inventory update, with manual entry as both a first-class option and
+// the fallback for ANY Claude failure. Receipt history now lives on the Inventory
+// tab (Receipts segment).
+//
+// Params:
+//   action  — 'scan' | 'upload' | 'manual': auto-launch that path on arrival
+//             (FAB, Home quick actions, shopping-run handoff)
+//   prefill — JSON Record<flowerId, quantity>: seeds manual entry (shopping run)
 
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -10,10 +16,8 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -22,15 +26,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FlowerPickerGrid } from '@/components/FlowerPickerGrid';
 import { ReceiptConfirmSheet, type ConfirmedLine } from '@/components/ReceiptConfirmSheet';
-import { flowerName } from '@/data/flowers';
 import { useInventory } from '@/hooks/useInventory';
-import { useReceipts } from '@/hooks/useReceipts';
 import { useRecencyOrder } from '@/hooks/useRecencyOrder';
 import { parseReceiptFromImage } from '@/lib/claude';
 import { persistImage } from '@/lib/images';
 import { fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
-import type { ParsedReceiptItem, StockingReceipt } from '@/types';
+import type { ParsedReceiptItem } from '@/types';
 
 type Pipeline =
   | { phase: 'idle' }
@@ -38,18 +40,31 @@ type Pipeline =
   | { phase: 'confirm'; imageUri: string; items: ParsedReceiptItem[] }
   | { phase: 'manual'; imageUri: string };
 
-export default function StockScreen() {
+function parsePrefill(raw: string | undefined): Record<string, number> {
+  if (!raw) return {};
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return {};
+    const out: Record<string, number> = {};
+    for (const [k, v] of Object.entries(parsed)) {
+      if (typeof v === 'number' && Number.isFinite(v) && v > 0) out[k] = Math.floor(v);
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+export default function StockInScreen() {
   const theme = useTheme();
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
   const { confirmReceipt } = useInventory();
-  const { recentReceipts } = useReceipts();
   const recencyOrder = useRecencyOrder();
-  const { action } = useLocalSearchParams<{ action?: string }>();
+  const { action, prefill } = useLocalSearchParams<{ action?: string; prefill?: string }>();
 
   const [pipeline, setPipeline] = useState<Pipeline>({ phase: 'idle' });
   const [manualQuantities, setManualQuantities] = useState<Record<string, number>>({});
-  const [viewing, setViewing] = useState<StockingReceipt | null>(null);
 
   const start = async (fromCamera: boolean) => {
     const perm = fromCamera
@@ -75,32 +90,41 @@ export default function StockScreen() {
         Alert.alert(`Receipt parsing failed (${parsed.error})`, parsed.detail ?? 'No detail available.');
       }
       // Any failure (or an empty parse) → manual entry fallback.
-      setManualQuantities({});
+      setManualQuantities(parsePrefill(prefill));
       setPipeline({ phase: 'manual', imageUri });
     }
   };
 
-  // Auto-launch the camera when arriving from the FAB's Scan Receipt action. The tab
-  // screen stays mounted across tab switches, so a plain "ran once" ref would only
-  // fire the very first time the FAB is used all session. Instead we clear the
-  // `action` param immediately after consuming it — that both prevents re-firing on
-  // unrelated re-renders and lets a fresh FAB tap (which re-pushes the same param)
-  // trigger the camera again.
-  const scanHandled = useRef(false);
+  const openManual = () => {
+    setManualQuantities(parsePrefill(prefill));
+    setPipeline({ phase: 'manual', imageUri: '' });
+  };
+
+  // This route is pushed fresh for each stock-in, so the launch param only needs
+  // consuming once per mount. Deferred a tick so the modal finishes presenting
+  // before the camera/picker takes over.
+  const launched = useRef(false);
   useEffect(() => {
-    if (action === 'scan' && !scanHandled.current) {
-      scanHandled.current = true;
-      router.setParams({ action: undefined });
-      void start(true);
-    } else if (action !== 'scan') {
-      scanHandled.current = false;
-    }
-  }, [action]);
+    if (launched.current) return;
+    launched.current = true;
+    const t = setTimeout(() => {
+      if (action === 'scan') void start(true);
+      else if (action === 'upload') void start(false);
+      else if (action === 'manual') openManual();
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const finish = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/home');
+  };
 
   const onConfirmParsed = (lines: ConfirmedLine[]) => {
     if (pipeline.phase !== 'confirm') return;
     confirmReceipt({ imageUri: pipeline.imageUri, items: lines });
-    setPipeline({ phase: 'idle' });
+    finish();
   };
 
   const onConfirmManual = () => {
@@ -113,49 +137,27 @@ export default function StockScreen() {
       return;
     }
     confirmReceipt({ imageUri: pipeline.imageUri, items });
-    setPipeline({ phase: 'idle' });
+    finish();
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + spacing.lg }]}>
-      <Text style={styles.title}>Stock Inventory</Text>
+    <View style={styles.container}>
+      <Text style={styles.hint}>
+        Scan or upload a receipt and the app reads it for you, or add what you bought by
+        hand. Everything lands in Inventory after you confirm.
+      </Text>
 
       <View style={styles.actions}>
         <Pressable style={styles.actionBtn} onPress={() => start(true)}>
           <Text style={styles.actionText}>📷 Scan Receipt</Text>
         </Pressable>
         <Pressable style={styles.actionBtn} onPress={() => start(false)}>
-          <Text style={styles.actionText}>📁 Upload File</Text>
+          <Text style={styles.actionText}>📁 Upload Photo</Text>
         </Pressable>
-        <Pressable
-          style={styles.actionBtn}
-          onPress={() => {
-            setManualQuantities({});
-            setPipeline({ phase: 'manual', imageUri: '' });
-          }}
-        >
+        <Pressable style={styles.actionBtn} onPress={openManual}>
           <Text style={styles.actionText}>✏️ Manual Entry</Text>
         </Pressable>
       </View>
-
-      <Text style={styles.sectionTitle}>Recent Receipts</Text>
-      <FlatList
-        data={recentReceipts}
-        keyExtractor={(r) => r.id}
-        contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <Pressable style={styles.receiptRow} onPress={() => setViewing(item)}>
-            <Text style={styles.receiptText}>
-              {new Date(item.submittedAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-              })}{' '}
-              · {item.parsedItems.length} item{item.parsedItems.length === 1 ? '' : 's'}
-            </Text>
-          </Pressable>
-        )}
-        ListEmptyComponent={<Text style={styles.empty}>No receipts yet.</Text>}
-      />
 
       {/* Processing overlay */}
       <Modal visible={pipeline.phase === 'processing'} transparent animationType="fade">
@@ -175,7 +177,7 @@ export default function StockScreen() {
         />
       ) : null}
 
-      {/* Manual-entry fallback */}
+      {/* Manual entry */}
       <Modal
         visible={pipeline.phase === 'manual'}
         animationType="slide"
@@ -210,36 +212,21 @@ export default function StockScreen() {
           </View>
         </View>
       </Modal>
-
-      {/* Read-only past receipt */}
-      <Modal
-        visible={viewing !== null}
-        animationType="slide"
-        onRequestClose={() => setViewing(null)}
-      >
-        <ScrollView contentContainerStyle={[styles.viewerScroll, { paddingTop: insets.top + spacing.lg }]}>
-          <Text style={styles.title}>Receipt</Text>
-          {viewing?.parsedItems.map((it, i) => (
-            <Text key={i} style={styles.viewerLine}>
-              {it.matchedFlowerId ? flowerName(it.matchedFlowerId) : it.rawText || 'Unmatched'} ×{' '}
-              {it.quantity}
-              {it.price != null ? ` · $${it.price.toFixed(2)}/${it.priceUnit ?? 'stem'}` : ''}
-            </Text>
-          ))}
-          <Pressable style={styles.sheetCancel} onPress={() => setViewing(null)}>
-            <Text style={styles.sheetCancelText}>Close</Text>
-          </Pressable>
-        </ScrollView>
-      </Modal>
     </View>
   );
 }
 
 function createStyles(theme: ThemeTokens) {
   return StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.background, paddingHorizontal: spacing.lg },
+    container: { flex: 1, backgroundColor: theme.background, padding: spacing.lg },
     title: { fontFamily: typography.display, fontSize: fontSize.header, color: theme.textPrimary },
-    actions: { gap: spacing.md, marginTop: spacing.lg },
+    hint: {
+      fontFamily: typography.body,
+      fontSize: fontSize.body,
+      color: theme.textSecondary,
+      marginBottom: spacing.lg,
+    },
+    actions: { gap: spacing.md },
     actionBtn: {
       backgroundColor: theme.surface,
       borderWidth: StyleSheet.hairlineWidth,
@@ -249,21 +236,6 @@ function createStyles(theme: ThemeTokens) {
       alignItems: 'center',
     },
     actionText: { fontFamily: typography.body, fontSize: fontSize.subtitle, color: theme.primary },
-    sectionTitle: {
-      fontFamily: typography.display,
-      fontSize: fontSize.title,
-      color: theme.textPrimary,
-      marginTop: spacing.xl,
-      marginBottom: spacing.sm,
-    },
-    list: { paddingBottom: spacing.xl, gap: spacing.sm },
-    receiptRow: {
-      paddingVertical: spacing.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: theme.border,
-    },
-    receiptText: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textPrimary },
-    empty: { fontFamily: typography.body, fontSize: fontSize.body, color: theme.textSecondary },
     processingBackdrop: {
       flex: 1,
       backgroundColor: 'rgba(0,0,0,0.35)',
@@ -297,12 +269,5 @@ function createStyles(theme: ThemeTokens) {
       alignItems: 'center',
     },
     confirmText: { color: '#fff', fontFamily: typography.body, fontSize: fontSize.body, fontWeight: '700' },
-    viewerScroll: { padding: spacing.lg },
-    viewerLine: {
-      fontFamily: typography.body,
-      fontSize: fontSize.body,
-      color: theme.textPrimary,
-      marginBottom: spacing.xs,
-    },
   });
 }

@@ -1,11 +1,13 @@
 // Inventory row (SPEC §5.5). On hand / spoken for / available with a usage bar, last
 // price + unit + date, a ⚠️ badge when fully allocated against live demand, and a
-// pencil to open the manual-adjust sheet.
+// pencil to open the manual-adjust sheet. Flow redesign: tapping the row expands it
+// to show which active orders its allocated stems are committed to.
 
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { flowerName } from '@/data/flowers';
 import type { InventoryRowData } from '@/hooks/useInventory';
+import type { DemandLine } from '@/lib/allocation';
 import { cardElevation, fontSize, radius, spacing, typography, type ThemeTokens } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-context';
 
@@ -19,9 +21,18 @@ function formatDate(iso?: string): string | null {
 export function InventoryRow({
   item,
   onAdjust,
+  expanded,
+  onToggle,
+  allocations,
+  onOpenOrder,
 }: {
   item: InventoryRowData;
   onAdjust: () => void;
+  expanded: boolean;
+  onToggle: () => void;
+  /** Active orders this flower's stems are committed to, soonest-due first. */
+  allocations: DemandLine[];
+  onOpenOrder: (orderId: string) => void;
 }) {
   const theme = useTheme();
   const styles = createStyles(theme);
@@ -31,12 +42,15 @@ export function InventoryRow({
   const date = formatDate(item.lastReceiptDate);
 
   return (
-    <View style={[styles.row, fullyAllocated && styles.rowWarn]}>
+    <Pressable style={[styles.row, fullyAllocated && styles.rowWarn]} onPress={onToggle}>
       <View style={styles.headerLine}>
         <Text style={styles.name}>{flowerName(item.flowerId)}</Text>
-        <Pressable onPress={onAdjust} hitSlop={8}>
-          <Text style={styles.pencil}>✏️</Text>
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={onAdjust} hitSlop={8}>
+            <Text style={styles.pencil}>✏️</Text>
+          </Pressable>
+          <Text style={styles.chevron}>{expanded ? '▾' : '▸'}</Text>
+        </View>
       </View>
 
       <Text style={styles.stats}>
@@ -59,7 +73,30 @@ export function InventoryRow({
       </Text>
 
       {fullyAllocated ? <Text style={styles.warnBadge}>⚠️ Fully allocated</Text> : null}
-    </View>
+
+      {expanded ? (
+        <View style={styles.expansion}>
+          {allocations.length === 0 ? (
+            <Text style={styles.allocMeta}>No active orders need this flower.</Text>
+          ) : (
+            allocations.map((a) => (
+              <Pressable
+                key={a.orderId}
+                style={styles.allocLine}
+                onPress={() => onOpenOrder(a.orderId)}
+              >
+                <Text style={styles.allocName} numberOfLines={1}>
+                  → {a.customerName}
+                </Text>
+                <Text style={styles.allocMeta}>
+                  {a.fulfilledQuantity} of {a.quantity} allocated
+                </Text>
+              </Pressable>
+            ))
+          )}
+        </View>
+      ) : null}
+    </Pressable>
   );
 }
 
@@ -74,8 +111,32 @@ function createStyles(theme: ThemeTokens) {
     },
     rowWarn: { borderColor: theme.warning, borderWidth: 1.5 },
     headerLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    headerActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
     name: { fontFamily: typography.display, fontSize: fontSize.subtitle, color: theme.textPrimary },
     pencil: { fontSize: 18 },
+    chevron: { fontSize: 14, color: theme.textSecondary },
+    expansion: {
+      marginTop: spacing.sm,
+      backgroundColor: theme.flowerCard,
+      borderRadius: radius.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+    },
+    allocLine: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+    },
+    allocName: {
+      flex: 1,
+      fontFamily: typography.body,
+      fontSize: fontSize.caption,
+      fontWeight: '600',
+      color: theme.textPrimary,
+    },
+    allocMeta: { fontFamily: typography.body, fontSize: fontSize.caption, color: theme.textSecondary },
     stats: {
       fontFamily: typography.body,
       fontSize: fontSize.caption,

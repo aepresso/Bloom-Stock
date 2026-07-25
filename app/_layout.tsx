@@ -48,6 +48,18 @@ function ThemedApp({ migrated }: { migrated: boolean }) {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="order" />
         <Stack.Screen
+          name="stock-in"
+          options={{
+            presentation: 'modal',
+            headerShown: true,
+            title: 'Stock In',
+            headerStyle: { backgroundColor: theme.background },
+            headerTintColor: theme.primary,
+            headerTitleStyle: { fontFamily: typography.display, color: theme.textPrimary },
+            headerShadowVisible: false,
+          }}
+        />
+        <Stack.Screen
           name="archive"
           options={{
             presentation: 'modal',

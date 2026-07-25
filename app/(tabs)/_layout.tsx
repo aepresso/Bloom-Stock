@@ -29,13 +29,13 @@ type QuickAction = { key: string; icon: string; label: string; onPress: () => vo
 
 type TabDef = { name: string; href: string; label: string; icon: string };
 
-// Order matches SPEC §3: Shopping List · Orders · Stock · Inventory.
-// Archive (002-ui-redesign) is no longer a permanent tab — it's reachable as a
-// modal sheet from the Orders screen header instead.
+// Flow redesign: Home dashboard is the landing tab; the Stock tab is dissolved —
+// stocking is an *action* (FAB / Home quick actions → pushed /stock-in route) and
+// receipt history now lives under Inventory. Archive stays reachable from Orders.
 const TABS: TabDef[] = [
+  { name: 'home', href: '/home', label: 'Home', icon: '🏠' },
   { name: 'shopping-list', href: '/shopping-list', label: 'Shopping', icon: '🛒' },
   { name: 'orders', href: '/orders', label: 'Orders', icon: '📋' },
-  { name: 'stock', href: '/stock', label: 'Stock', icon: '🧾' },
   { name: 'inventory', href: '/inventory', label: 'Inventory', icon: '📦' },
 ];
 
@@ -100,7 +100,7 @@ function QuickActionFab({ styles }: { styles: Styles }) {
       label: 'Scan Receipt',
       onPress: () => {
         close();
-        router.push('/stock?action=scan');
+        router.push('/stock-in?action=scan');
       },
     },
   ];
